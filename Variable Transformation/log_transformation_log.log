@@ -1,0 +1,404 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                08:55:31
+Site:                70094220
+Platform:            Linux
+Maintenance Release: 9.04.01M7P080620
+EM Version:          15.2
+* 
+*------------------------------------------------------------*
+* Training Log
+Date:                07 January 2024
+Time:                08:55:29
+*------------------------------------------------------------*
+11448  proc freq data=EMWS1.Trans_VariableSet noprint;
+11449  table ROLE*LEVEL/out=WORK.TransMETA;
+11450  run;
+11451  proc print data=WORK.TransMETA label noobs;
+11452  var ROLE LEVEL COUNT;
+11453  label ROLE = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel, NOQUOTE))" LEVEL = "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel, NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel, NOQUOTE))";
+11454  title9 ' ';
+11455  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_varSummary_title  , NOQUOTE))";
+11456  run;
+11457  title10;
+11458  data WORK.M3HL427U;
+11459  set WORK.M3HL427U;
+11460  if (METHOD='NONE' and ROLE ne 'FREQ') or (role = 'REJECTED' and METHOD = 'DEFAULT') then delete;
+11461  run;
+11526  *------------------------------------------------------------*;
+11527  * Trans: Computing Summary Statistics;
+11528  *------------------------------------------------------------*;
+11529  data WORK.M1LGCQZD;
+11530  set WORK.M1LGCQZD;
+11531  if (role = 'REJECTED') then role = 'INPUT';
+11532  run;
+11533  *------------------------------------------------------------* ;
+11534  * EM: DMDBClass Macro ;
+11535  *------------------------------------------------------------* ;
+11536  %macro DMDBClass;
+11537      Churn(DESC) City(ASC) Discount_Applied_Binary(ASC) FavoriteCategory(ASC)
+11538     Gender_Binary(ASC) IMP_Satisfaction_Level(ASC) Membership_Type(ASC)
+11539  %mend DMDBClass;
+11540  *------------------------------------------------------------* ;
+11541  * EM: DMDBVar Macro ;
+11542  *------------------------------------------------------------* ;
+11543  %macro DMDBVar;
+11544      Average_Rating Days_Since_Last_Purchase IMP_Age Items_Purchased Total_Spend
+11545  %mend DMDBVar;
+11546  *------------------------------------------------------------*;
+11547  * EM: Create DMDB;
+11548  *------------------------------------------------------------*;
+11549  proc dmdb batch data=EMWS1.Impt_TRAIN
+11550  dmdbcat=WORK.EM_DMDB
+11551  classout=WORK.Transclassout
+11552  maxlevel = 513
+11553  ;
+11554  class %DMDBClass;
+11555  var %DMDBVar;
+11556  target
+11557  Churn
+11558  ;
+11559  run;
+11560  quit;
+11561  *--- end code ---*;
+11562  data WORK.TransINTERVALMETA;
+11563  set WORK.M3HL427U;
+11564  if LEVEL ne 'INTERVAL' then delete;
+11565  run;
+11566  *------------------------------------------------------------*;
+11567  * Trans: Determining Variables to Scale;
+11568  *------------------------------------------------------------*;
+11569  data WORK.M1LDLE5K;
+11570  set WORK.M1LDLE5K;
+11571  where (TYPE="N" and (METHOD in("MAX_NORM", "MAX_CORR", "EQUALIZE", "OP_MAX_NORM", "OP_EQUALIZE"))) or (ROLE eq "FREQ");
+11572  run;
+*------------------------------------------------------------*
+*  Trans: Creating EMWS1.Trans_RESULT
+*------------------------------------------------------------*
+WARNING: Multiple lengths were specified for the BY variable NAME by input data sets. This might cause unexpected results.
+11611  data EMWS1.Trans_RESULT;
+11612  length NAME $32 FORMULA $70 POWER 8 ROLE $32 LEVEL $10 INPUTNAME $32 INPUTTYPE $1 LABEL $44;
+11613  label INPUTNAME ='Input Name' NAME='Name' POWER='Power' FORMULA='Formula' ROLE='Role' INPUTLEVEL='Input Level' LEVEL='Level' INPUTTYPE='Input Type' TYPE='Type';
+11614  set EMWS1.Trans_RESULT;
+11615  if INPUTNAME = '' then INPUTNAME = "Mixture of variables";
+11616  run;
+11617  data WORK.M2UP_M94;
+11618  set WORK.M2UP_M94;
+11619  if ROLE='REJECTED' then ROLE='INPUT';
+11620  run;
+*------------------------------------------------------------*
+*  Trans: Computing summary statistics for transformed variables
+*------------------------------------------------------------*
+11696  data WORK.TRANSFOR_2HUZO5E_STATISTIC;
+11697  set WORK.Trans_TEMP;
+11698  run;
+11699  proc print data = EMWS1.Trans_RESULT(obs=500) noobs label;
+11700  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_computedtransformations_title, NOQUOTE))";
+11701  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_maxObsPrinted_title, NOQUOTE))";
+11702  var INPUTNAME ROLE INPUTLEVEL NAME LEVEL FORMULA;
+11703  run;
+11704  title9;
+11705  title10;
+*------------------------------------------------------------*
+* Score Log
+Date:                07 January 2024
+Time:                08:55:30
+*------------------------------------------------------------*
+11807  proc sort data=EMWS1.Trans_RESULT out=WORK.TransRESULT NOTHREADS;
+11808  by INPUTNAME;
+11809  run;
+11810  proc sort data=EMWS1.Trans_VariableSet(KEEP= NAME FAMILY REPORT rename=(NAME=INPUTNAME)) out=WORK.TransVARSET NOTHREADS;
+11811  by INPUTNAME;
+11812  run;
+11813  data WORK.TransRESULT;
+11814  merge WORK.TransRESULT WORK.TransVARSET;
+11815  by INPUTNAME;
+11816  if NAME ne '' then output;
+11817  run;
+WARNING: Multiple lengths were specified for the BY variable INPUTNAME by input data sets. This might cause unexpected results.
+11818  filename _code "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/Trans/TRAINDELTACODE.sas";
+11819  data _null_;
+11820  set WORK.TransRESULT;
+11821  length String $200;
+11822  file _code;
+11823  String = 'if NAME="'!!strip(name)!!'" then do;';
+11824  put / String;
+11825  if family ne '' then do;
+11826  String = '   FAMILY ="'!!strip(family)!!'";';
+11827  put String;
+11828  end;
+11829  select(formula);
+11830  when('Interaction') put '   FAMILY  ="INTERACTION";';
+11831  when('') put '   COMMENT = "' method 'transformation of ' INPUTVAR '";';
+11832  otherwise put '   COMMENT = "' formula '";';
+11833  end;
+11834  String = '   ROLE ="'!!strip(role)!!'";';
+11835  put String;
+11836  if REPORT="" then REPORT = "N";
+11837  String = '   REPORT ="'!!strip(report)!!'";';
+11838  put String;
+11839  String = '   LEVEL  ="'!!strip(level)!!'";';
+11840  put String;
+11841  put 'end;';
+11842  if formula ne 'Interaction' and INPUTNAME ne '' then do;
+11843  String = 'if NAME="'!!strip(INPUTNAME)!!'" then delete;';
+11844  put String;
+11845  end;
+11846  run;
+11847  filename _code;
+11848  filename emflow "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/Trans/EMFLOWSCORE.sas";
+11849  *------------------------------------------------------------*;
+11850  * Trans: Scoring DATA data;
+11851  *------------------------------------------------------------*;
+11852  data EMWS1.Trans_TRAIN
+11853  / view=EMWS1.Trans_TRAIN
+11854  ;
+11855  set EMWS1.Impt_TRAIN
+11856  ;
+11857  %inc emflow;
+11881  run;
+11882  quit;
+11883  filename emflow;
+11884  *------------------------------------------------------------*;
+11885  * Trans: Computing metadata for TRAIN data;
+11886  *------------------------------------------------------------*;
+*------------------------------------------------------------*
+* Report Log
+Date:                07 January 2024
+Time:                08:55:31
+*------------------------------------------------------------*
+12266  *------------------------------------------------------------*;
+12267  * &msgString;
+12268  *------------------------------------------------------------*;
+12269  filename _flowref "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/Trans/EMFLOWSCORE.sas";
+12270  proc FCMP NOEXECUTE IMPUTEDDEPS OUTDEPS=WORK.TRANS_SCOREINPUTS;
+12271  %INCLUDE _flowref;
+12295  run;
+12296  quit;
+12297  data WORK.TRANS_SCOREINPUTS;
+12298  set WORK.TRANS_SCOREINPUTS(keep=RHS rename=(RHS=NAME));
+12299  length UNAME $32;
+12300  UNAME = upcase(NAME);
+12301  run;
+12302  proc sort data=WORK.TRANS_SCOREINPUTS NODUPKEY;
+12303  by UNAME;
+12304  run;
+12305  filename _flowref;
+12306  %let SYSCC = 0;
+12307  *------------------------------------------------------------*;
+12308  * transformcombinevariables;
+12309  *------------------------------------------------------------*;
+12310  data WORK.TRANS_OUTPUTVARS;
+12311  length Uname inputName $32 inputLevel $10 inputType $1 _MetaFlag 8;
+12312  set
+12313  EMWS1.Trans_RESULT
+12314  ;
+12315  _MetaFlag=0;
+12316  uname = upcase(name);
+12317  run;
+12318  data _temp;
+12319  length UNAME $32;
+12320  set EMWS1.Trans_CMeta_TRAIN(keep=NAME LEVEL ROLE TYPE CREATOR LABEL);
+12321  UNAME = upcase(name);
+12322  where upcase(CREATOR) = upcase("Trans");
+12323  run;
+12324  proc sort data=_temp(drop=CREATOR);
+12325  by UNAME;
+12326  run;
+12327  proc sort data=WORK.TRANS_OUTPUTVARS;
+12328  by UNAME;
+12329  run;
+12330  data WORK.TRANS_OUTPUTVARS;
+12331  merge WORK.TRANS_OUTPUTVARS _temp;
+12332  by UNAME;
+12333  run;
+12334  *------------------------------------------------------------*;
+12335  * Trans: Get Metadata for the Score Inputs Variables;
+12336  *------------------------------------------------------------*;
+12337  data _temp;
+12338  length UNAME $32;
+12339  set EMWS1.Trans_VariableSet(keep=NAME LEVEL TYPE LABEL);
+12340  UNAME = upcase(name);
+12341  run;
+12342  proc sort data=_temp;
+12343  by UNAME;
+12344  run;
+12345  data WORK.TRANS_SCOREINPUTS;
+12346  merge WORK.TRANS_SCOREINPUTS(in=_a) _temp(in=_b);
+12347  by UNAME;
+12348  if _a and _b then output;
+12349  run;
+12350  *------------------------------------------------------------*;
+12351  * Trans: Computing Summary Statistics;
+12352  *------------------------------------------------------------*;
+12353  proc dmdb data=EMWS1.Trans_TRAIN classout=WORK.TRANS_CLASSSTATS varout=WORK.TRANS_VARSTATS;
+12354  ;
+12355  var
+12356  IMP_Age
+12357  Items_Purchased
+12358  LOG_IMP_Age
+12359  LOG_Items_Purchased
+12360  ;
+12361  run;
+12362  *------------------------------------------------------------*;
+12363  * Trans: Combine Information and Statistics for Class Variables;
+12364  *------------------------------------------------------------*;
+12365  proc sort data=WORK.TRANS_OUTPUTVARS out=_temp;
+12366  by NAME;
+12367  run;
+12368  proc sort data=WORK.TRANS_CLASSSTATS;
+12369  by NAME;
+12370  run;
+12371  data WORK.TRANS_CLASSSTATS(keep=name nlevel nmiss);
+12372  retain nlevel nmiss;
+12373  set WORK.TRANS_CLASSSTATS;
+12374  by Name;
+12375  if first.Name then do;
+12376  nlevel= 0;
+12377  nmiss= 0;
+12378  end;
+12379  if (type='C' and CRAW='') or (type='N' and NRAW=.) then nmiss = FREQUENCY;
+12380  else nlevel + 1;
+12381  if last.name then output;
+12382  run;
+12383  /*Merge Statistics for Class Output Vars */
+12384  data WORK.TRANS_CLASSSTATS;
+12385  length SOURCE $6 _METHOD_ $8 NAME $32 FORMULA $300;
+12386  merge WORK.TRANS_CLASSSTATS(in=_a) _temp(in=_b keep=NAME InputName Formula _MetaFlag LEVEL TYPE LABEL);
+12387  by NAME;
+12388  if _a and _b then do;
+12389  SOURCE='Output';
+12390  if _MetaFlag = 1 then _METHOD_="Meta";
+12391  else if Formula eq 'Interaction' then _METHOD_="Computed";
+12392  else if inputName eq '' then _METHOD_="Formula";
+12393  else _METHOD_="Computed";
+12394  if Formula = '' then Formula = "User Code";
+12395  end;
+12396  if _a then output;
+12397  drop inputName LEVEL TYPE _MetaFlag;
+12398  run;
+12399  /*Merge Statistics for Class Input Vars */
+12400  proc sort data=WORK.TRANS_SCOREINPUTS(drop=TYPE LEVEL) out=_temp nodupkey;
+12401  by NAME;
+12402  run;
+12403  data WORK.TRANS_CLASSSTATS;
+12404  merge WORK.TRANS_CLASSSTATS(in=_a) _temp(in=_b);
+12405  by NAME;
+12406  if _a and _b then do;
+12407  SOURCE='Input';
+12408  _METHOD_="Original";
+12409  end;
+12410  if _a then output;
+12411  run;
+12412  *------------------------------------------------------------*;
+12413  * Trans: Combine Information and Statistics for Interval Variables;
+12414  *------------------------------------------------------------*;
+12415  proc sort data=WORK.TRANS_OUTPUTVARS out=_temp;
+12416  by NAME;
+12417  run;
+12418  proc sort data=WORK.TRANS_VARSTATS;
+12419  by NAME;
+12420  run;
+12421  *Merge Statistics for Output Vars;
+12422  data WORK.TRANS_VARSTATS;
+12423  length SOURCE $6 _METHOD_ $8 NAME $32 FORMULA $300;
+12424  merge WORK.TRANS_VARSTATS(in=_a) _temp(in=_b keep=NAME Formula InputName _MetaFlag LEVEL TYPE LABEL);
+12425  by NAME;
+12426  if _a and _b then do;
+12427  SOURCE='Output';
+12428  if _MetaFlag = 1 then _METHOD_="Meta";
+12429  else if Formula eq 'Interaction' then _METHOD_="Computed";
+12430  else if inputName eq '' then _METHOD_="Formula";
+12431  else _METHOD_="Computed";
+12432  if Formula = '' then Formula = "Mixture of variables";
+12433  end;
+12434  if _a then output;
+12435  drop inputName LEVEL TYPE _MetaFlag;
+12436  run;
+12437  *Merge Statistics for Input Vars;
+12438  proc sort data=WORK.TRANS_SCOREINPUTS(drop=TYPE LEVEL) out=_temp nodupkey;
+12439  by NAME;
+12440  run;
+12441  data WORK.TRANS_VARSTATS;
+12442  merge WORK.TRANS_VARSTATS(in=_a) _temp(in=_b);
+12443  by NAME;
+12444  if _a and _b then do;
+12445  SOURCE='Input';
+12446  _METHOD_="Original";
+12447  end;
+12448  if _a then output;
+12449  run;
+12450  *------------------------------------------------------------*;
+12451  * Trans: Combine statistics for class and interval variables;
+12452  *------------------------------------------------------------*;
+12453  data EMWS1.Trans_STATISTICS;
+12454  length SOURCE $6 _METHOD_ $8 NAME $32 FORMULA $300;
+12455  label SOURCE = "%sysfunc(sasmsg(sashelp.dmine, rpt_source_vlabel,  NOQUOTE))" _METHOD_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_method_vlabel,  NOQUOTE))" NAME = "%sysfunc(sasmsg(sashelp.dmine, meta_name_vlabel,  NOQUOTE))" FORMULA =
+12456     "%sysfunc(sasmsg(sashelp.dmine, rpt_formula_vlabel,   NOQUOTE))" NLEVEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_numcat_vlabel,   NOQUOTE))" N = "%sysfunc(sasmsg(sashelp.dmine, rpt_nonmiss_vlabel, NOQUOTE))" NMISS =
+12457     "%sysfunc(sasmsg(sashelp.dmine, rpt_missing_vlabel, NOQUOTE))" MIN = "%sysfunc(sasmsg(sashelp.dmine, rpt_minimum_vlabel, NOQUOTE))" MAX = "%sysfunc(sasmsg(sashelp.dmine, rpt_maximum_vlabel, NOQUOTE))" MEAN =
+12458     "%sysfunc(sasmsg(sashelp.dmine, rpt_mean_vlabel,    NOQUOTE))" STD = "%sysfunc(sasmsg(sashelp.dmine, rpt_std_vlabel,     NOQUOTE))" SKEWNESS = "%sysfunc(sasmsg(sashelp.dmine, rpt_skewness_vlabel, NOQUOTE))" KURTOSIS =
+12459     "%sysfunc(sasmsg(sashelp.dmine, rpt_kurtosis_vlabel, NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel, NOQUOTE))";
+12460  set
+12461  WORK.TRANS_CLASSSTATS
+12462  WORK.TRANS_VARSTATS
+12463  ;
+12464  drop UNAME;
+12465  run;
+12466  proc sort data=EMWS1.Trans_STATISTICS;
+12467  by SOURCE _METHOD_ NAME;
+12468  run;
+12469  proc sort data = EMWS1.Trans_STATISTICS NOTHREADS;
+12470  by SOURCE NAME;
+12471  run;
+12472  title9 ' ';
+12473  proc print data = EMWS1.Trans_STATISTICS(obs=500) noobs label;
+12474  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_intervalinputStats_title, NOQUOTE))";
+12475  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_maxObsPrinted_title, NOQUOTE))";
+12476  var Name NMISS MIN MAX MEAN STD SKEWNESS KURTOSIS;
+12477  where SOURCE eq 'INPUT' and mean ne .;
+12478  run;
+12479  proc print data = EMWS1.Trans_STATISTICS(obs=500) noobs label;
+12480  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_intervaloutputStats_title, NOQUOTE))";
+12481  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_maxObsPrinted_title, NOQUOTE))";
+12482  var Name _METHOD_ NMISS MIN MAX MEAN STD SKEWNESS KURTOSIS;
+12483  where SOURCE eq 'OUTPUT' and mean ne .;
+12484  run;
+12485  proc print data = EMWS1.Trans_STATISTICS(obs=500) noobs label;
+12486  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_classinputStats_title, NOQUOTE))";
+12487  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_maxObsPrinted_title, NOQUOTE))";
+12488  var Name NLEVEL NMISS;
+12489  where SOURCE eq 'INPUT' and nlevel ne .;
+12490  run;
+12491  proc print data = EMWS1.Trans_STATISTICS(obs=500) noobs label;
+12492  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_classoutputStats_title, NOQUOTE))";
+12493  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_maxObsPrinted_title, NOQUOTE))";
+12494  var Name _METHOD_ NLEVEL NMISS;
+12495  where SOURCE eq 'OUTPUT' and nlevel ne .;
+12496  run;
+12497  title9;
+12498  title10;
+12499  data EMWS1.Trans_EMSCOREVAR;
+12500  length Name $32 formula $300 file $200;
+12501  keep NAME Formula file;
+12502  set EMWS1.Trans_STATISTICS;
+12503  where SOURCE='Output';
+12504  select( _METHOD_);
+12505  when('Computed') do;
+12506  file="TRANSFORMCODE/"!!strip(NAME)!!'.sas';
+12507  formula = '';
+12508  end;
+12509  when('Formula') do;
+12510  if Formula eq 'Mixture of variables' then do;
+12511  file= "EDITORCODE.sas";
+12512  formula = '';
+12513  end;
+12514  if Formula = 'User Code' then do;
+12515  file= "EDITORCODE.sas";
+12516  formula = '';
+12517  end;
+12518  end;
+12519  otherwise;
+12520  end;
+12521  output;
+12522  run;

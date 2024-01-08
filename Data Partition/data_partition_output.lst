@@ -1,0 +1,75 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                08:59:46
+*------------------------------------------------------------*
+* Training Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+ 
+Variable Summary
+ 
+            Measurement    Frequency
+Role           Level         Count
+ 
+ID           INTERVAL          1
+INPUT        BINARY            2
+INPUT        INTERVAL          5
+INPUT        NOMINAL           4
+REJECTED     NOMINAL           2
+TARGET       BINARY            1
+ 
+ 
+ 
+ 
+Partition Summary
+ 
+                                Number of
+Type         Data Set         Observations
+ 
+DATA     EMWS1.Trans_TRAIN        1020
+TRAIN    EMWS1.Part_TRAIN          816
+TEST     EMWS1.Part_TEST           204
+
+
+*------------------------------------------------------------*
+* Score Output
+*------------------------------------------------------------*
+
+
+*------------------------------------------------------------*
+* Report Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+ 
+Summary Statistics for Class Targets
+ 
+Data=DATA
+ 
+            Numeric    Formatted    Frequency
+Variable     Value       Value        Count      Percent    Label
+ 
+ Churn         0           0           521       51.0784
+ Churn         1           1           499       48.9216
+ 
+ 
+Data=TEST
+ 
+            Numeric    Formatted    Frequency
+Variable     Value       Value        Count      Percent    Label
+ 
+ Churn         0           0            90       44.1176
+ Churn         1           1           114       55.8824
+ 
+ 
+Data=TRAIN
+ 
+            Numeric    Formatted    Frequency
+Variable     Value       Value        Count      Percent    Label
+ 
+ Churn         0           0           431       52.8186
+ Churn         1           1           385       47.1814

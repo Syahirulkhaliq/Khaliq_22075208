@@ -1,0 +1,880 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                10:41:33
+Site:                70094220
+Platform:            Linux
+Maintenance Release: 9.04.01M7P080620
+EM Version:          15.2
+* 
+*------------------------------------------------------------*
+* Training Log
+Date:                07 January 2024
+Time:                10:41:29
+*------------------------------------------------------------*
+11447  data work.MdlComp;
+11448  set EMWS1.em_nodeid;
+11449  where
+11450  (NODEID="Boost" and LABEL ne 'Gradient Boosting')
+11451  OR (NODEID="Tree2" and LABEL ne 'Decision Tree (Gini)')
+11452  OR (NODEID="HPDMForest" and LABEL ne 'HP Forest')
+11453  ;
+11454  run;
+11456  proc freq data=EMWS1.MdlComp_VariableSet noprint;
+11457  table ROLE*LEVEL/out=WORK.MdlCompMETA;
+11458  run;
+11459  proc print data=WORK.MdlCompMETA label noobs;
+11460  var ROLE LEVEL COUNT;
+11461  label ROLE = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel, NOQUOTE))" LEVEL = "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel, NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel, NOQUOTE))";
+11462  title9 ' ';
+11463  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_varSummary_title  , NOQUOTE))";
+11464  run;
+11465  title10;
+11466  %let _hpflow = 0;
+11467  data _null_;
+11468  set EMWS1.HPDMForest_EMINFO;
+11469  where key="HPDMSAMPLE";
+11470  call symput('_hpflow', '1');
+11471  run;
+11472  %let _hpflow = 0;
+11473  data _null_;
+11474  set EMWS1.Boost_EMINFO;
+11475  where key="HPDMSAMPLE";
+11476  call symput('_hpflow', '1');
+11477  run;
+11478  %let _hpflow = 0;
+11479  data _null_;
+11480  set EMWS1.Tree2_EMINFO;
+11481  where key="HPDMSAMPLE";
+11482  call symput('_hpflow', '1');
+11483  run;
+11484  data _null_;
+11485  set EMWS1.em_nodeid;
+11486  where upcase(NODEID) = upcase("HPDMForest");
+11487  call symput('_MODELDESC', strip(tranwrd(LABEL, '"', '""')));
+11488  run;
+11489  data EMWS1.MdlComp_EMRANK;
+11490  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11491  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGETLABEL
+11491! =
+11492     "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11493  retain parent "HPDMForest" MODEL "HPDMForest" MODELDESCRIPTION "HP Forest" TARGETLABEL "";
+11494  set EMWS1.HPDMForest_EMRANK;
+11495  where upcase(TARGET) = upcase("Churn");
+11496  run;
+11497  data EMWS1.MdlComp_EMSCOREDIST;
+11498  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11499  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGETLABEL
+11499! =
+11500     "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11501  retain parent "HPDMForest" MODEL "HPDMForest" MODELDESCRIPTION "HP Forest" TARGETLABEL "";
+11502  set EMWS1.HPDMForest_EMSCOREDIST;
+11503  where upcase(TARGET) = upcase("Churn");
+11504  run;
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _INIT >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _term >>
+11505  data WORK.HPDMForest_OUTFIT;
+11506  set EMWS1.HPDMForest_EMOUTFIT;
+11507  run;
+11508  data EMWS1.MdlComp_EMOUTFIT;
+11509  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 TARGET $32 TARGETLABEL $200;
+11510  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGETLABEL
+11510! =
+11511     "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11512  retain parent "HPDMForest" MODEL "HPDMForest" MODELDESCRIPTION "HP Forest" TARGETLABEL "";
+11513  set WORK.HPDMForest_OUTFIT;
+11514  where upcase(TARGET) = upcase("Churn");
+11515  run;
+11516  data EMWS1.MdlComp_EMCLASSIFICATION;
+11517  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11518  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGETLABEL
+11518! =
+11519     "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11520  retain parent "HPDMForest" MODEL "HPDMForest" MODELDESCRIPTION "HP Forest" TARGETLABEL "";
+11521  set EMWS1.HPDMForest_EMCLASSIFICATION;
+11522  where upcase(TARGET) = upcase("Churn");
+11523  run;
+11524  data EMWS1.MdlComp_EMEVENTREPORT;
+11525  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11526  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGETLABEL
+11526! =
+11527     "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11528  retain parent "HPDMForest" MODEL "HPDMForest" MODELDESCRIPTION "HP Forest" TARGETLABEL "";
+11529  set EMWS1.HPDMForest_EMEVENTREPORT;
+11530  where upcase(TARGET) = upcase("Churn");
+11531  run;
+11532  data _null_;
+11533  set EMWS1.em_nodeid;
+11534  where upcase(NODEID) = upcase("Boost");
+11535  call symput('_MODELDESC', strip(tranwrd(LABEL, '"', '""')));
+11536  run;
+11537  data work.MdlComp_TEMP;
+11538  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11539  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11540     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11541  retain parent "Boost" MODEL "Boost" MODELDESCRIPTION "Gradient Boosting" TARGETLABEL "";
+11542  set EMWS1.Boost_EMRANK;
+11543  where upcase(TARGET) = upcase("Churn");
+11544  run;
+11545  data EMWS1.MdlComp_EMRANK;
+11546  set EMWS1.MdlComp_EMRANK work.MdlComp_TEMP;
+11547  run;
+11548  data work.MdlComp_TEMP;
+11549  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11550  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11551     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11552  retain parent "Boost" MODEL "Boost" MODELDESCRIPTION "Gradient Boosting" TARGETLABEL "";
+11553  set EMWS1.Boost_EMSCOREDIST;
+11554  where upcase(TARGET) = upcase("Churn");
+11555  run;
+11556  data EMWS1.MdlComp_EMSCOREDIST;
+11557  set EMWS1.MdlComp_EMSCOREDIST work.MdlComp_TEMP;
+11558  run;
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _INIT >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _term >>
+11559  data WORK.Boost_OUTFIT;
+11560  set EMWS1.Boost_EMOUTFIT;
+11561  run;
+11562  data work.MdlComp_TEMP;
+11563  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 TARGET $32 TARGETLABEL $200;
+11564  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11565     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11566  retain parent "Boost" MODEL "Boost" MODELDESCRIPTION "Gradient Boosting" TARGETLABEL "";
+11567  set WORK.Boost_OUTFIT;
+11568  where upcase(TARGET) = upcase("Churn");
+11569  run;
+11570  data EMWS1.MdlComp_EMOUTFIT;
+11571  set EMWS1.MdlComp_EMOUTFIT work.MdlComp_TEMP;
+11572  run;
+11573  data work.MdlComp_TEMP;
+11574  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11575  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11576     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11577  retain parent "Boost" MODEL "Boost" MODELDESCRIPTION "Gradient Boosting" TARGETLABEL "";
+11578  set EMWS1.Boost_EMCLASSIFICATION;
+11579  where upcase(TARGET) = upcase("Churn");
+11580  run;
+11581  data EMWS1.MdlComp_EMCLASSIFICATION;
+11582  set EMWS1.MdlComp_EMCLASSIFICATION work.MdlComp_TEMP;
+11583  run;
+11584  data work.MdlComp_TEMP;
+11585  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11586  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11587     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11588  retain parent "Boost" MODEL "Boost" MODELDESCRIPTION "Gradient Boosting" TARGETLABEL "";
+11589  set EMWS1.Boost_EMEVENTREPORT;
+11590  where upcase(TARGET) = upcase("Churn");
+11591  run;
+11592  data EMWS1.MdlComp_EMEVENTREPORT;
+11593  set EMWS1.MdlComp_EMEVENTREPORT work.MdlComp_TEMP;
+11594  run;
+11595  data _null_;
+11596  set EMWS1.em_nodeid;
+11597  where upcase(NODEID) = upcase("Tree2");
+11598  call symput('_MODELDESC', strip(tranwrd(LABEL, '"', '""')));
+11599  run;
+11600  data work.MdlComp_TEMP;
+11601  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11602  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11603     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11604  retain parent "Tree2" MODEL "Tree2" MODELDESCRIPTION "Decision Tree (Gini)" TARGETLABEL "";
+11605  set EMWS1.Tree2_EMRANK;
+11606  where upcase(TARGET) = upcase("Churn");
+11607  run;
+11608  data EMWS1.MdlComp_EMRANK;
+11609  set EMWS1.MdlComp_EMRANK work.MdlComp_TEMP;
+11610  run;
+11611  data work.MdlComp_TEMP;
+11612  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11613  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11614     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11615  retain parent "Tree2" MODEL "Tree2" MODELDESCRIPTION "Decision Tree (Gini)" TARGETLABEL "";
+11616  set EMWS1.Tree2_EMSCOREDIST;
+11617  where upcase(TARGET) = upcase("Churn");
+11618  run;
+11619  data EMWS1.MdlComp_EMSCOREDIST;
+11620  set EMWS1.MdlComp_EMSCOREDIST work.MdlComp_TEMP;
+11621  run;
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _INIT >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _term >>
+11622  data WORK.Tree2_OUTFIT;
+11623  set EMWS1.Tree2_EMOUTFIT;
+11624  run;
+11625  data work.MdlComp_TEMP;
+11626  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 TARGET $32 TARGETLABEL $200;
+11627  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11628     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11629  retain parent "Tree2" MODEL "Tree2" MODELDESCRIPTION "Decision Tree (Gini)" TARGETLABEL "";
+11630  set WORK.Tree2_OUTFIT;
+11631  where upcase(TARGET) = upcase("Churn");
+11632  run;
+11633  data EMWS1.MdlComp_EMOUTFIT;
+11634  set EMWS1.MdlComp_EMOUTFIT work.MdlComp_TEMP;
+11635  run;
+11636  data work.MdlComp_TEMP;
+11637  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11638  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11639     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11640  retain parent "Tree2" MODEL "Tree2" MODELDESCRIPTION "Decision Tree (Gini)" TARGETLABEL "";
+11641  set EMWS1.Tree2_EMCLASSIFICATION;
+11642  where upcase(TARGET) = upcase("Churn");
+11643  run;
+11644  data EMWS1.MdlComp_EMCLASSIFICATION;
+11645  set EMWS1.MdlComp_EMCLASSIFICATION work.MdlComp_TEMP;
+11646  run;
+11647  data work.MdlComp_TEMP;
+11648  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 DATAROLE $20 TARGET $32 TARGETLABEL $200;
+11649  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" MODELDESCRIPTION = "%sysfunc(sasmsg(sashelp.dmine, rpt_modeldesc_vlabel, NOQUOTE))" TARGET =
+11650     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+11651  retain parent "Tree2" MODEL "Tree2" MODELDESCRIPTION "Decision Tree (Gini)" TARGETLABEL "";
+11652  set EMWS1.Tree2_EMEVENTREPORT;
+11653  where upcase(TARGET) = upcase("Churn");
+11654  run;
+11655  data EMWS1.MdlComp_EMEVENTREPORT;
+11656  set EMWS1.MdlComp_EMEVENTREPORT work.MdlComp_TEMP;
+11657  run;
+*------------------------------------------------------------*
+* "Compute assessment statistics"
+*------------------------------------------------------------*
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _INIT >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _term >>
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _INIT >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _term >>
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _INIT >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL SETMETADATA >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL next >>
+Executing  SASHELP.EMCORE.EMINFOITERATOR.SCL _term >>
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+12087  proc sort data=EMWS1.MdlComp_EMOUTFIT NOTHREADS;
+12088  by model target;
+12089  run;
+12090  proc sort data=EMWS1.MdlComp_EMINDEX NOTHREADS;
+12091  by model target;
+12092  run;
+12093  data EMWS1.MdlComp_EMOUTFIT;
+12094  merge EMWS1.MdlComp_EMOUTFIT EMWS1.MdlComp_EMINDEX;
+12095  label TARGET = "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel,  NOQUOTE))";
+12096  by model target;
+12097  run;
+12098  proc sort data=EMWS1.MdlComp_EMRANK(keep=DATAROLE DECILE MODEL GAIN LIFT LIFTC RESP RESPC CAP CAPC) out=_temp;
+12099  by MODEL;
+12100  where DECILE=10;
+12101  run;
+12102  data _temp;
+12103  retain _GAIN_ _VGAIN_ _LIFT_ _LIFTC_ _VLIFT_ _VLIFTC_ _RESP_ _RESPC_ _VRESP_ _VRESPC_ _CAP_ _CAPC_ _VCAP_ _VCAPC_ .;
+12104  label _GAIN_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_traingain_vlabel, NOQUOTE))" _VGAIN_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_validgain_vlabel, NOQUOTE))" _LIFT_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_trainlift_vlabel, NOQUOTE))" _VLIFT_ =
+12105     "%sysfunc(sasmsg(sashelp.dmine, rpt_validlift_vlabel, NOQUOTE))" _RESP_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_trainresp_vlabel, NOQUOTE))" _VRESP_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_validresp_vlabel, NOQUOTE))" _CAP_ =
+12106     "%sysfunc(sasmsg(sashelp.dmine, rpt_traincap_vlabel,  NOQUOTE))" _VCAP_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_validcap_vlabel,  NOQUOTE))" _LIFTC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_trainliftc_vlabel, NOQUOTE))" _VLIFTC_ =
+12107     "%sysfunc(sasmsg(sashelp.dmine, rpt_validliftc_vlabel, NOQUOTE))" _RESPC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_trainrespc_vlabel, NOQUOTE))" _VRESPC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_validrespc_vlabel, NOQUOTE))" _CAPC_ =
+12108     "%sysfunc(sasmsg(sashelp.dmine, rpt_traincapc_vlabel,  NOQUOTE))" _VCAPC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_validcapc_vlabel,  NOQUOTE))" _TGAIN_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_testgain_vlabel,  NOQUOTE))" _TLIFT_ =
+12109     "%sysfunc(sasmsg(sashelp.dmine, rpt_testlift_vlabel,   NOQUOTE))" _TRESP_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_testresp_vlabel,  NOQUOTE))" _TCAP_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_testcap_vlabel,   NOQUOTE))" _TLIFTC_ =
+12110     "%sysfunc(sasmsg(sashelp.dmine, rpt_testliftc_vlabel,   NOQUOTE))" _TRESPC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_testrespc_vlabel,  NOQUOTE))" _TCAPC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_testcapc_vlabel,   NOQUOTE))";
+12111  set _temp;
+12112  by MODEL;
+12113  if first.MODEL then do;
+12114  _GAIN_=.;
+12115  _VGAIN_=.;
+12116  _TGAIN_=.;
+12117  _LIFT_=.;
+12118  _VLIFT_=.;
+12119  _TLIFT_=.;
+12120  _LIFTC_=.;
+12121  _VLIFTC_=.;
+12122  _TLIFTC_=.;
+12123  _RESP_=.;
+12124  _VRESP_=.;
+12125  _TRESP_=.;
+12126  _RESPC_=.;
+12127  _VRESPC_=.;
+12128  _TRESPC_=.;
+12129  _CAP_=.;
+12130  _VCAP_=.;
+12131  _TCAP_=.;
+12132  _CAPC_=.;
+12133  _VCAPC_=.;
+12134  _VCAPC_=.;
+12135  end;
+12136  select(DATAROLE);
+12137  when('TRAIN') do;
+12138  _GAIN_=GAIN;
+12139  _LIFT_=LIFT;
+12140  _LIFTC_=LIFTC;
+12141  _RESP_=RESP;
+12142  _RESPC_=RESPC;
+12143  _CAP_=CAP;
+12144  _CAPC_=CAPC;
+12145  end;
+12146  when('VALIDATE') do;
+12147  _VGAIN_=GAIN;
+12148  _VLIFT_=LIFT;
+12149  _VLIFTC_=LIFTC;
+12150  _VRESP_=RESP;
+12151  _VRESPC_=RESPC;
+12152  _VCAP_=CAP;
+12153  _VCAPC_=CAPC;
+12154  end;
+12155  when('TEST') do;
+12156  _TGAIN_=GAIN;
+12157  _TLIFT_=LIFT;
+12158  _TLIFTC_=LIFTC;
+12159  _TRESP_=RESP;
+12160  _TRESPC_=RESPC;
+12161  _TCAP_=CAP;
+12162  _TCAPC_=CAPC;
+12163  end;
+12164  otherwise;
+12165  end;
+12166  keep MODEL _GAIN_ _LIFT_ _LIFTC_ _RESP_ _RESPC_ _CAP_ _CAPC_
+12167  _TGAIN_ _TLIFT_ _TLIFTC_ _TRESP_ _TRESPC_ _TCAP_ _TCAPC_
+12168  ;
+12169  if last.model then output;
+12170  run;
+12171  proc sort data=EMWS1.MdlComp_EMOUTFIT;
+12172  by MODEL;
+12173  run;
+12174  data EMWS1.MdlComp_EMOUTFIT;
+12175  merge EMWS1.MdlComp_EMOUTFIT _temp;
+12176  by MODEL;
+12177  run;
+12178  data EMWS1.MdlComp_EMOUTFIT;
+12179  length PARENT $16 MODEL $16 MODELDESCRIPTION $81 TARGET $32 TARGETLABEL $200 _CRITERION_ 8;
+12180  set EMWS1.MdlComp_EMOUTFIT;
+12181  label _CRITERION_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_selectioncriterion_vlabel ,  NOQUOTE, %nrbquote(Train: Misclassification Rate)))";
+12182  _CRITERION_ = _MISC_;
+12183  run;
+12184  data EMWS1.MdlComp_EMOUTFIT;
+12185  length USE $1;
+12186  label USE= "%sysfunc(sasmsg(sashelp.dmine, rpt_selmodel_vlabel,  NOQUOTE))";
+12187  set EMWS1.MdlComp_EMOUTFIT;
+12188  run;
+12189  proc sort data = EMWS1.MdlComp_EMOUTFIT NOTHREADS;
+12190  by
+12191  _MISC_
+12192  _ASE_;
+12193  run;
+12194  %let EM_AUTOMODEL = %str();
+12195  data EMWS1.MdlComp_EMOUTFIT;
+12196  set EMWS1.MdlComp_EMOUTFIT;
+12197  drop found;
+12198  retain found 0;
+12199  if found = 0 and _MISC_ ne . then do;
+12200  use = 'Y';
+12201  found = 1;
+12202  call symput('EM_AUTOMODEL', model);
+12203  end;
+12204  run;
+12205  title ' ';
+12206  proc print data=EMWS1.MdlComp_EMOUTFIT noobs label;
+12207  var
+12208  USE
+12209  MODEL
+12210  MODELDESCRIPTION
+12211  _MISC_
+12212  _ASE_
+12213  _AUR_
+12214  _GINI_
+12215  ;
+12216  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_fitstat_title,        NOQUOTE))";
+12217  title10 "Model Selection based on Train: Misclassification Rate (_MISC_)";
+12218  run;
+12219  title9;
+12220  title10;
+12221  proc transpose data=EMWS1.MdlComp_EMOUTFIT out= work.modelstats(rename=(_LABEL_=Label _NAME_=STAT));
+12222  ID model;
+12223  by target targetLabel;
+12224  run;
+12225  data work.modelstats;
+12226  set work.modelstats;
+12227  if substr(STAT, 1, 2) = '_V' or STAT='VKS' then do;
+12228  NumRole=2;
+12229  end;
+12230  else if substr(STAT, 1, 2) = '_T' or STAT='TKS' then do;
+12231  NumRole=3;
+12232  end;
+12233  else if substr(STAT, 1, 1) = '_' or STAT in('KS', 'BINNED_KS_PROB_CUTOFF') then do;
+12234  NumRole=1;
+12235  end;
+12236  run;
+12237  proc sort data=work.modelstats out=work.modelstats;
+12238  by NumRole STAT;
+12239  run;
+12240  proc format;
+12241  value RoleFmt 1='Train' 2='Valid' 3='Test';
+12242  run;
+12243  proc print data= work.modelstats(drop=STAT target targetLabel) noobs label;
+12244  label Label = "%sysfunc(sasmsg(sashelp.dmine, rpt_statistics_vlabel, NOQUOTE))" NumRole= "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel,   NOQUOTE))";
+12245  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_fittable_title, NOQUOTE))";
+12246  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_target_title,   NOQUOTE, Churn))";
+12247  by NumRole;
+12248  format NumRole RoleFmt.;
+12249  run;
+12250  title9;
+12251  title10;
+12252  data EMWS1.MdlComp_COMPAREFIT;
+12253  length DataRole Target $32 targetlabel $200;
+12254  label DataRole = "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel,  NOQUOTE))" STAT = "%sysfunc(sasmsg(sashelp.dmine, rpt_fitstat_vlabel,   NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_statlabel_vlabel, NOQUOTE))";
+12255  set work.modelstats;
+12256  DataRole = strip(put(NumRole, Rolefmt.));
+12257  drop NumRole;
+12258  run;
+12259  %macro ReportFit;
+12260  proc transpose data= EMWS1.MdlComp_EMOUTFIT(obs=1) out=tempFit;
+12261  run;
+12262  data _null_;
+12263  set tempfit end=eof;
+12264  retain statCount 0;
+12265  if substr(_NAME_,1,2) ^in('_V', '_T', 'TK', 'VK') then do;
+12266  statCount + 1;
+12267  call symput('statName'!!strip(put(statCount,best.)), _NAME_);
+12268  call symput('statLabel'!!strip(put(statCount,best.)), scan(_LABEL_,2, ':'));
+12269  end;
+12270  if eof then do;
+12271  call symput('statCount', strip(put(statCount,best.)));
+12272  end;
+12273  run;
+12274  data EMWS1.MdlComp_EMREPORTFIT;
+12275  set EMWS1.MdlComp_EMOUTFIT;
+12276  length FitStat $41 Label $40;
+12277  label FitStat = "%sysfunc(sasmsg(sashelp.dmine, rpt_fitstat_vlabel,   NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_statlabel_vlabel, NOQUOTE))";
+12278  %do i=1 %to &statCount;
+12279  FitStat="&&StatName&i";
+12280  Label="&&StatLabel&i";
+12281  Train =&&StatName&i;
+12282  %if &&StatName&i= KS %then %do;
+12283  Validate = VKS;
+12284  Test = TKS;
+12285  %end;
+12286  %else %if &&StatName&i= BINNED_KS_PROB_CUTOFF %then %do;
+12287  Validate = _VBINNED_KS_PROB_CUTOFF_;
+12288  Test = _TBINNED_KS_PROB_CUTOFF_;
+12289  %end;
+12290  %else %do;
+12291  %let VstatName= _V%substr(&&StatName&i,2);
+12292  %let TstatName= _T%substr(&&StatName&i,2);
+12293  Validate=&VStatName;
+12294  Test=&TStatName;
+12295  %end;
+12296  output;
+12297  %end;
+12298  keep Parent Model Target TargetLabel FitStat Label Train Validate Test;
+12299  run;
+12300  %mend;
+12301  %reportFit;
+12302  proc print data=EMWS1.MdlComp_EMEVENTREPORT(drop=PARENT) noobs label;
+12303  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_eventtable_title ,    NOQUOTE))";
+12304  title10 "Model Selection based on Train: Misclassification Rate (_MISC_)";
+12305  run;
+12306  title9;
+12307  title10;
+12308  proc datasets library=EMWS1 nolist;
+12309  modify MdlComp_EMRANK;
+12310  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" DATAROLE = "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel,  NOQUOTE))" TARGET =
+12311     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+12312  run;
+12313  proc sort data=EMWS1.MdlComp_EMRANK NOTHREADS;
+12314  by descending model target;
+12315  run;
+12316  proc datasets library=EMWS1 nolist;
+12317  modify MdlComp_EMSCOREDIST;
+12318  label PARENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_parent_vlabel  ,  NOQUOTE))" MODEL = "%sysfunc(sasmsg(sashelp.dmine, rpt_modelnode_vlabel, NOQUOTE))" DATAROLE = "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel,  NOQUOTE))" TARGET =
+12319     "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel, NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+12320  run;
+12321  proc sort data=EMWS1.MdlComp_EMSCOREDIST NOTHREADS;
+12322  by descending model target;
+12323  run;
+12324  proc sort data=EMWS1.MdlComp_EMROC NOTHREADS;
+12325  by descending model target;
+12326  run;
+*------------------------------------------------------------*
+* Score Log
+Date:                07 January 2024
+Time:                10:41:32
+*------------------------------------------------------------*
+12428  /* Generate assessment metadata, which will be used to generate assessment data step */
+12429  /* code, such as retrieving names of temporary variables and summary variables,      */
+12430  /* labels, etc.  It is used in almost all the assessment computations such as lift,  */
+12431  /* roc, index, scoreDist and could be thought as a global variable in assessment     */
+12432  /* computation.                                                                      */
+12433  data work.ASSESS_0OBCASI_assessMeta_FRG4Lt;
+12434  length VARIABLE $32 FORMAT $44 TYPE $32 PARENT $32 LEVEL $32 PROPERTY $32 MEASUREMENT $10 LAST_LEVEL $32 GEN_VAR_IN_TEMP_DATA $32 RESULT_MEAN $32 RESULT_MEAN_LABEL $100 RESULT_MIN $32 RESULT_MIN_LABEL $100 MIN_ADJUSTED $32 RESULT_MAX $32
+12434! RESULT_MAX_LABEL
+12435     $100 MAX_ADJUSTED $32 RESULT_COUNT $32 RESULT_COUNT_LABEL $100 TEMPORARY_VARIABLE $32;
+12436  VARIABLE = "Churn";
+12437  PARENT = "";
+12438  FORMAT = "";
+12439  TYPE = "";
+12440  LEVEL = '';
+12441  PROPERTY = "TARGET";
+12442  MEASUREMENT = "BINARY";
+12443  LAST_LEVEL = '';
+12444  GEN_VAR_IN_TEMP_DATA = "Churn";
+12445  RESULT_MEAN = "";
+12446  RESULT_MEAN_LABEL = "";
+12447  RESULT_MIN = "";
+12448  RESULT_MIN_LABEL = "";
+12449  MIN_ADJUSTED = "";
+12450  RESULT_MAX = "";
+12451  RESULT_MAX_LABEL = "";
+12452  MAX_ADJUSTED = "";
+12453  RESULT_COUNT = "";
+12454  RESULT_COUNT_LABEL = "";
+12455  TEMPORARY_VARIABLE = "Churn_X1AGxOAgzR779PN";
+12456  output;
+12457  VARIABLE = "F_Churn_1";
+12458  FORMAT = "";
+12459  TYPE = "";
+12460  PARENT = "F_Churn";
+12461  LEVEL = "1";
+12462  PROPERTY = "TARGET_LEVEL";
+12463  MEASUREMENT = "INTERVAL";
+12464  LAST_LEVEL = "0";
+12465  GEN_VAR_IN_TEMP_DATA = "F_Churn_1_Cc4Qx615vbwIX_v";
+12466  RESULT_MEAN = "F_Churn_1_mean_fsMDMxM_zsjHUwt";
+12467  /* adjust for tied cases */
+12468  RESULT_MEAN_LABEL = "";
+12469  RESULT_MIN = "";
+12470  RESULT_MIN_LABEL = "";
+12471  RESULT_MAX = "";
+12472  RESULT_MAX_LABEL = "";
+12473  RESULT_COUNT = "NumberOfEvents";
+12474  RESULT_COUNT_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_NumEvent_vlabel, NOQUOTE))";
+12475  TEMPORARY_VARIABLE = "F_Churn_1_vTnv6I0eKQlA7Iu";
+12476  output;
+12477  VARIABLE = "F_Churn_0";
+12478  FORMAT = "";
+12479  TYPE = "";
+12480  PARENT = "F_Churn";
+12481  LEVEL = "0";
+12482  PROPERTY = "TARGET_LEVEL";
+12483  MEASUREMENT = "INTERVAL";
+12484  LAST_LEVEL = "0";
+12485  GEN_VAR_IN_TEMP_DATA = "F_Churn_0_7A8y51rwluM4Eu4";
+12486  RESULT_MEAN = "F_Churn_0_mean_r4X5o3d0tr2LKcG";
+12487  /* adjust for tied cases */
+12488  RESULT_MEAN_LABEL = "";
+12489  RESULT_MIN = "";
+12490  RESULT_MIN_LABEL = "";
+12491  RESULT_MAX = "";
+12492  RESULT_MAX_LABEL = "";
+12493  RESULT_COUNT = "NumberOfEvents";
+12494  RESULT_COUNT_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_NumEvent_vlabel, NOQUOTE))";
+12495  TEMPORARY_VARIABLE = "F_Churn_0_EHhsTbE2hH3EIXr";
+12496  output;
+12497  VARIABLE = "P_Churn1";
+12498  FORMAT = "";
+12499  TYPE = "";
+12500  PARENT = "";
+12501  LEVEL = "1";
+12502  PROPERTY = "POSTERIOR_LEVEL";
+12503  MEASUREMENT = "INTERVAL";
+12504  LAST_LEVEL = "";
+12505  GEN_VAR_IN_TEMP_DATA = "P_Churn1";
+12506  RESULT_MEAN = "_meanP_";
+12507  RESULT_MEAN_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_probMean_vlabel, NOQUOTE))";
+12508  RESULT_MIN = "_minP_";
+12509  RESULT_MIN_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_probMin_vlabel, NOQUOTE))";
+12510  MIN_ADJUSTED = "P_Churn1_minAdjusted_XP3Si_DB0";
+12511  RESULT_MAX = "_maxP_";
+12512  RESULT_MAX_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_probMax_vlabel, NOQUOTE))";
+12513  MAX_ADJUSTED = "P_Churn1_maxAdjusted_FTVGQA6sD";
+12514  RESULT_COUNT = "";
+12515  RESULT_COUNT_LABEL = "";
+12516  TEMPORARY_VARIABLE = "P_Churn1_h0mXbFUohMfzYUd";
+12517  output;
+12518  VARIABLE = "P_Churn0";
+12519  FORMAT = "";
+12520  TYPE = "";
+12521  PARENT = "";
+12522  LEVEL = "0";
+12523  PROPERTY = "POSTERIOR_LEVEL";
+12524  MEASUREMENT = "INTERVAL";
+12525  LAST_LEVEL = "";
+12526  GEN_VAR_IN_TEMP_DATA = "P_Churn0";
+12527  RESULT_MEAN = "_meanP_";
+12528  RESULT_MEAN_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_probMean_vlabel, NOQUOTE))";
+12529  RESULT_MIN = "_minP_";
+12530  RESULT_MIN_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_probMin_vlabel, NOQUOTE))";
+12531  MIN_ADJUSTED = "P_Churn0_minAdjusted_f03TV5yWQ";
+12532  RESULT_MAX = "_maxP_";
+12533  RESULT_MAX_LABEL = "%sysfunc(sasmsg(sashelp.dmine, assmt_probMax_vlabel, NOQUOTE))";
+12534  MAX_ADJUSTED = "P_Churn0_maxAdjusted_3NL1DxfPv";
+12535  RESULT_COUNT = "";
+12536  RESULT_COUNT_LABEL = "";
+12537  TEMPORARY_VARIABLE = "P_Churn0_AXR1TPRyYi67c8D";
+12538  output;
+12539  run;
+12540  /* Generate temporary dataset and obtain summary statistics such as total number of   */
+12541  /* obserations, frequency of target.  However, summary statistics for class reporting */
+12542  /* variabels are not computed here since if there exist class reporting variables,    */
+12543  /* then PROC DMDB will be called. And there is no need to compute interval reporting  */
+12544  /* summary statisitcs, if any.                                                        */
+12545  data work.ASSESS_0OBCASI_normSD_9Cza3q(drop=
+12546  _numberOfObservation_
+12547  _levelFrequency_1
+12548  _levelFrequency_2
+12549  )
+12550  work.ASSESS_0OBCASI_meansAndTi_cyGKoH (keep=
+12551  _numberOfObservation_
+12552  _levelFrequency_1
+12553  _levelFrequency_2
+12554  );
+12555  set EMWS1.Boost_TRAIN(
+12556  where=(
+12557  (Churn ^= .)
+12558  )
+12559  ) end=_lastObservation_;
+12560  keep frequency_C8BQrx;
+12561  frequency_C8BQrx = 1;
+12562  keep I_Churn F_Churn;
+12563  keep F_Churn_1_Cc4Qx615vbwIX_v;
+12564  if (F_Churn = '1') then do;
+12565  F_Churn_1_Cc4Qx615vbwIX_v = 1;
+12566  end;
+12567  else do;
+12568  F_Churn_1_Cc4Qx615vbwIX_v = 0;
+12569  end;
+12570  keep F_Churn_0_7A8y51rwluM4Eu4;
+12571  if (F_Churn = '0') then do;
+12572  F_Churn_0_7A8y51rwluM4Eu4 = 1;
+12573  end;
+12574  else do;
+12575  F_Churn_0_7A8y51rwluM4Eu4 = 0;
+12576  end;
+12577  keep P_Churn1;
+12578  keep P_Churn0;
+12579  output work.ASSESS_0OBCASI_normSD_9Cza3q;
+12580  keep _numberOfObservation_;
+12581  retain _numberOfObservation_ 0;
+12582  _numberOfObservation_ + frequency_C8BQrx;
+12583  keep _levelFrequency_1;
+12584  retain _levelFrequency_1 0;
+12585  if (F_Churn = '1') then do;
+12586  _levelFrequency_1 + frequency_C8BQrx;
+12587  end;
+12588  keep _levelFrequency_2;
+12589  retain _levelFrequency_2 0;
+12590  if (F_Churn = '0') then do;
+12591  _levelFrequency_2 + frequency_C8BQrx;
+12592  end;
+12593  if _lastObservation_ then do;
+12594  output work.ASSESS_0OBCASI_meansAndTi_cyGKoH;
+12595  end;
+12596  run;
+12597  data WORK._EMRANK;
+12598  set EMWS1.MdlComp_EMRANK;
+12599  where MODEL = "Boost" and TARGET = "Churn" and dataRole="TRAIN";
+12600  run;
+12601  data work._augment;
+12602  do BIN= 1 to 20;
+12603  DECILE = BIN*5;
+12604  output;
+12605  end;
+12606  run;
+12607  data WORK._EMRANK;
+12608  merge WORK._AUGMENT WORK._EMRANK;
+12609  by BIN;
+12610  run;
+12611  data WORK._EMRANK;
+12612  set WORK._EMRANK end=_lastObservation_;
+12613  retain _previousMinP_ _previousMaxP_;
+12614  retain _group_ 1;
+12615  keep event;
+12616  keep bin _cutoff_ _group_;
+12617  if (bin > 1) then do;
+12618  bin = bin - 1;
+12619  _cutoff_ = (_maxP_ + _previousMinP_) / 2;
+12620  if (abs(_previousMaxP_ - _previousMinP_) < 1E-6) then do;
+12621  /* tied */
+12622  _cutoff_ = max((_minP_ + _maxP_)/2, min(_cutoff_, _previousMinP_/*-1E-6*/
+12623  ));
+12624  end;
+12625  else if (abs(_maxP_ - _minP_) < 1E-6) then do;
+12626  /* next tied */
+12627  _cutoff_ = min((_previousMinP_ + _previousMaxP_)/2, max(_cutoff_, _maxP_/*+ 1E-6*/
+12628  ));
+12629  end;
+12630  output;
+12631  *if ( abs((_maxP_ +_minP_)/2 - (_previousMaxP_ + _previousMinP_)/2) > 1E-6) then do;
+12632  * _group_ + 1;
+12633  *end;
+12634  if (_maxP_ le _previousMinP_ - 1E-6) then do;
+12635  _group_ + 1;
+12636  end;
+12637  else if (abs(_maxP_ - _previousMinP_) < 1E-6) then do;
+12638  if (abs(_maxP_ - _minP_) > 1E-6) then do;
+12639  _group_ + 1;
+12640  end;
+12641  end;
+12642  bin + 1;
+12643  /* correct the previous change */
+12644  end;
+12645  if (_lastObservation_) then do;
+12646  _cutoff_ = .;
+12647  output;
+12648  end;
+12649  _previousMinP_ = _minP_;
+12650  _previousMaxP_ = _maxP_;
+12651  run;
+12652  data WORK._EMRANK;
+12653  set WORK._EMRANK;
+12654  by _group_;
+12655  retain _start_;
+12656  if (first._group_) then do;
+12657  _start_ = _n_;
+12658  end;
+12659  if (last._group_) then do;
+12660  _end_ = _n_;
+12661  output;
+12662  end;
+12663  run;
+12664  filename emflow "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/MdlComp/EMFLOWSCORE.sas";
+12665  *------------------------------------------------------------*;
+12666  * MdlComp: Scoring BOOST_TRAIN data;
+12667  *------------------------------------------------------------*;
+12668  data EMWS1.MdlComp_TRAIN
+12669  / view=EMWS1.MdlComp_TRAIN
+12670  ;
+12671  set EMWS1.Boost_TRAIN
+12672  ;
+12673  %inc emflow;
+12753  run;
+12754  quit;
+12755  filename emflow;
+12756  filename emflow "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/MdlComp/EMFLOWSCORE.sas";
+12757  *------------------------------------------------------------*;
+12758  * MdlComp: Scoring BOOST_TEST data;
+12759  *------------------------------------------------------------*;
+12760  data EMWS1.MdlComp_TEST
+12761  / view=EMWS1.MdlComp_TEST
+12762  ;
+12763  set EMWS1.Boost_TEST
+12764  ;
+12765  %inc emflow;
+12845  run;
+12846  quit;
+12847  filename emflow;
+12848  *------------------------------------------------------------*;
+12849  * MdlComp: Computing metadata for TRAIN data;
+12850  *------------------------------------------------------------*;
+*------------------------------------------------------------*
+* Report Log
+Date:                07 January 2024
+Time:                10:41:33
+*------------------------------------------------------------*

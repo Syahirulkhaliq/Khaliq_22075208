@@ -1,0 +1,293 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                05:51:31
+Site:                70094220
+Platform:            Linux
+Maintenance Release: 9.04.01M7P080620
+EM Version:          15.2
+* 
+*------------------------------------------------------------*
+* Training Log
+Date:                07 January 2024
+Time:                05:51:29
+*------------------------------------------------------------*
+11448  proc freq data=EMWS1.Impt_VariableSet noprint;
+11449  table ROLE*LEVEL/out=WORK.ImptMETA;
+11450  run;
+11451  proc print data=WORK.ImptMETA label noobs;
+11452  var ROLE LEVEL COUNT;
+11453  label ROLE = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel, NOQUOTE))" LEVEL = "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel, NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel, NOQUOTE))";
+11454  title9 ' ';
+11455  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_varSummary_title  , NOQUOTE))";
+11456  run;
+11457  title10;
+11475  data WORK.Impt_TREEINPUTS;
+11476  set WORK.M0ZLRWJ3;
+11477  if ROLE ne 'FREQ' then do;
+11478  if ((ROLE in('TARGET','REJECTED') and useTree='D') or useTree='N') then delete;
+11479  ROLE = 'INPUT';
+11480  end;
+11481  run;
+11482  data WORK.M0ZLRWJ3;
+11483  set WORK.M0ZLRWJ3;
+11484  if METHOD in("TREE", "TREESURR") then role = 'TARGET';
+11485  else if (role = 'REJECTED') then role = 'INPUT';
+11486  run;
+11487  *------------------------------------------------------------* ;
+11488  * Impt: DMDBClass Macro ;
+11489  *------------------------------------------------------------* ;
+11490  %macro DMDBClass;
+11491      Churn(DESC) City(ASC) Discount_Applied_Binary(ASC) FavoriteCategory(ASC)
+11492     Gender_Binary(ASC) Membership_Type(ASC) Satisfaction_Level(ASC)
+11493  %mend DMDBClass;
+11494  *------------------------------------------------------------* ;
+11495  * Impt: DMDBVar Macro ;
+11496  *------------------------------------------------------------* ;
+11497  %macro DMDBVar;
+11498      Age Average_Rating Days_Since_Last_Purchase Items_Purchased Total_Spend
+11499  %mend DMDBVar;
+11500  *------------------------------------------------------------*;
+11501  * Impt: Create DMDB;
+11502  *------------------------------------------------------------*;
+11503  proc dmdb batch data=EMWS1.FIMPORT2_train
+11504  dmdbcat=WORK.Impt_DMDB
+11505  classout=WORK.Impt_DMDBCLASSOUT
+11506  varout=WORK.IMPUTE_0MNP_R1_DMDBVAROUT
+11507  maxlevel = 513
+11508  nonorm
+11509  ;
+11510  class %DMDBClass;
+11511  var %DMDBVar;
+11512  target
+11513  Churn
+11514  ;
+11515  run;
+11516  quit;
+11517  *--- end code ---*;
+11518  proc sort data=WORK.Impt_DMDBCLASSOUT;
+11519  by NAME;
+11520  run;
+11521  data WORK.Impt_DMDBCLASSOUT;
+11522  retain missFlag;
+11523  set WORK.Impt_DMDBCLASSOUT;
+11524  by NAME;
+11525  output;
+11526  if first.name then missflag = 0;
+11527  if (TYPE='C' and CRAW='') or (TYPE='N' and NRAW=.) then missflag = 1;
+11528  if last.name and ^missFlag then do;
+11529  if type = 'C' then do;
+11530  LEVEL= '';
+11531  CRAW = '';
+11532  NRAW = .;
+11533  end;
+11534  else do;
+11535  LEVEL='.';
+11536  CRAW = '.';
+11537  NRAW= .;
+11538  end;
+11539  FREQUENCY = 0;
+11540  FREQPERCENT = 0;
+11541  NMISSPERCENT = 0;
+11542  output;
+11543  end;
+11544  run;
+11545  data WORK.Impt_MISS(KEEP=NAME NMISS PERCENTMISS);
+11546  length NAME $32;
+11547  set
+11548  WORK.Impt_DMDBCLASSOUT(rename=(freqpercent=PERCENTMISS frequency=NMISS) where=((TYPE='C' and CRAW='') or (TYPE='N' and NRAW=.)))
+11549  WORK.IMPUTE_0MNP_R1_DMDBVAROUT
+11550  ;
+11551  if (NMISS ne . and N ne .) then PERCENTMISS = (NMISS/(NMISS+N))*100;
+11552  run;
+11553  proc sort data=WORK.M224ZLIP NOTHREADS;
+11554  by NAME;
+11555  run;
+11556  proc sort data=WORK.Impt_MISS NOTHREADS;
+11557  by NAME;
+11558  run;
+11559  data WORK.M224ZLIP;
+11560  merge WORK.M224ZLIP WORK.Impt_MISS(in=_b);
+11561  by NAME;
+11562  if _b then output;
+11563  run;
+11564  data WORK.M224ZLIP;
+11565  set WORK.M224ZLIP;
+11566  if 0<PERCENTMISS<50 and method ne 'NONE' then IMPUTE = 1;
+11567  else IMPUTE = 0;
+11568  run;
+11569  proc dmdb data=WORK.M224ZLIP outtable=WORK.NEWNAMES nameserver;
+11570  names NAME;
+11571  prefix M_ IMP_;
+11572  where IMPUTE=1;
+11573  run;
+11574  data WORK.M224ZLIP;
+11575  merge WORK.M224ZLIP WORK.NEWNAMES;
+11576  by NAME;
+11577  run;
+11578  proc dmdb data=WORK.M224ZLIP outtable=WORK.NEWNAMES nameserver;
+11579  names NAME;
+11580  prefix M_;
+11581  where IMPUTE=0;
+11582  run;
+11583  data WORK.M224ZLIP;
+11584  merge WORK.M224ZLIP WORK.NEWNAMES;
+11585  by NAME;
+11586  run;
+11587  data WORK.Impt;
+11588  run;
+11589  data WORK._IMPUTEDS;
+11590  Satisfaction_Level = 'Unsatisfied';
+11591  run;
+11592  data WORK.Impt;
+11593  merge WORK.Impt WORK._IMPUTEDS;
+11594  run;
+11595  proc sort data=WORK.METASET06OYDPD out=_imputevar(keep=NAME METHOD);
+11596  by NAME;
+11597  run;
+11598  proc sort data=WORK.IMPUTE_0MNP_R1_DMDBVAROUT;
+11599  by NAME;
+11600  run;
+11601  data _null_;
+11602  merge WORK.IMPUTE_0MNP_R1_DMDBVAROUT(in=_a) _imputeVar(in=_b);
+11603  by NAME;
+11604  if _N_=1 then do;
+11605  call execute("data WORK._IMPUTEDMDB;");
+11606  end;
+11607  if _a and _b then do;
+11608  select(METHOD);
+11609  when('MEAN') value=mean;
+11610  when('MIN') value=min;
+11611  when('MAX') value=max;
+11612  when('RANGE') value=(max-min);
+11613  when('MIDRANGE') value=(max+min)/2;
+11614  otherwise;
+11615  end;
+11616  call execute(NAME!!'='!!strip(put(value, best.))!!';');
+11617  end;
+11618  run;
+WARNING: Multiple lengths were specified for the BY variable NAME by input data sets. This might cause unexpected results.
+1     + data WORK._IMPUTEDMDB;
+2     + Age                             =36.557654076;
+11619  data WORK.Impt;
+11620  merge WORK.Impt WORK._IMPUTEDMDB;
+11621  run;
+11622  proc transpose data=WORK.Impt out=WORK._IMPVALUE(drop =_LABEL_ rename=(_NAME_=NAME COL1=VALUE));
+11623  var
+11624  Satisfaction_Level
+11625  Age
+11626  ;
+11627  run;
+WARNING: The variable _LABEL_ in the DROP, KEEP, or RENAME list has never been referenced.
+11628  proc sort data=WORK._IMPVALUE NOTHREADS;
+11629  by NAME;
+11630  run;
+11631  data EMWS1.Impt_META;
+11632  merge WORK.M224ZLIP WORK._IMPVALUE;
+11633  by NAME;
+11634  run;
+11635  proc print data=EMWS1.Impt_META(obs=500) label noobs;
+11636  label NAME = "%sysfunc(sasmsg(sashelp.dmine, meta_name_vlabel,          NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel,         NOQUOTE))" PERCENTMISS = "%sysfunc(sasmsg(sashelp.dmine, rpt_percentmissing_vlabel, NOQUOTE))";
+11637  var NAME LABEL PERCENTMISS;
+11638  where IMP eq '' and PERCENTMISS>50;
+11639  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_rejectedsummary_title, NOQUOTE))";
+11640  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_numberobs_title,         NOQUOTE))";
+11641  run;
+*------------------------------------------------------------*
+* Score Log
+Date:                07 January 2024
+Time:                05:51:30
+*------------------------------------------------------------*
+11743  data _null_;
+11744  set EMWS1.Impt_META end=eof;
+11745  length string $34;
+11746  retain missTotal;
+11747  file #LN00104;
+11748  if _n_=1 then misstotal = percentmiss;
+11749  missTotal = percentmiss+misstotal;
+11750  if IMP ne '' and METHOD ne 'NONE' then do;
+11751  string = '"'!!strip(NAME)!!'"';
+11752  put 'if NAME = ' string 'then delete;';
+11753  put 'else ';
+11754  string = '"'!!strip(IMP)!!'"';
+11755  put 'if NAME    = ' string ' then do;';
+11756  string = '"'!!strip(ROLE)!!'"';
+11757  put '   ROLE    = ' string ';';
+11758  string = '"'!!strip(FAMILY)!!'"';
+11759  put '   FAMILY  = ' string ';';
+11760  string = '"'!!strip(REPORT)!!'"';
+11761  put '   REPORT  = ' string ';';
+11762  string = '"'!!strip(LEVEL)!!'"';
+11763  put '   LEVEL   = ' string ';';
+11764  string = '"'!!strip(ORDER)!!'"';
+11765  put '   ORDER   = ' string ';';
+11766  put 'end;';
+11767  end;
+11768  if percentmiss>50 and ROLE ne 'TARGET' then do;
+11769  string = '"'!!strip(NAME)!!'"';
+11770  put 'if NAME = ' string ' then do;';
+11771  put '   ROLE ="REJECTED";';
+11772  put '   COMMENT = "Percent of missing exceeds 50%";';
+11773  put 'end;';
+11774  end;
+11775  run;
+11776  filename emflow "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/Impt/EMFLOWSCORE.sas";
+11777  *------------------------------------------------------------*;
+11778  * Impt: Scoring DATA data;
+11779  *------------------------------------------------------------*;
+11780  data EMWS1.Impt_TRAIN
+11781  / view=EMWS1.Impt_TRAIN
+11782  ;
+11783  set EMWS1.FIMPORT2_train
+11784  ;
+11785  %inc emflow;
+11801  run;
+11802  quit;
+11803  filename emflow;
+11804  *------------------------------------------------------------*;
+11805  * Impt: Computing metadata for TRAIN data;
+11806  *------------------------------------------------------------*;
+*------------------------------------------------------------*
+* Report Log
+Date:                07 January 2024
+Time:                05:51:31
+*------------------------------------------------------------*
+12185  %let _nimpute = 0;
+12186  data EMWS1.Impt_RESULT;
+12187  label NAME = "%sysfunc(sasmsg(sashelp.dmine, meta_name_vlabel,        NOQUOTE))" METHOD = "%sysfunc(sasmsg(sashelp.dmine, rpt_imputemethod_vlabel, NOQUOTE))" IMPUTED = "%sysfunc(sasmsg(sashelp.dmine, rpt_imputedvar_vlabel,   NOQUOTE))" INDICATOR =
+12188     "%sysfunc(sasmsg(sashelp.dmine, rpt_indicatorvar_vlabel, NOQUOTE))" VALUE = "%sysfunc(sasmsg(sashelp.dmine, rpt_imputevalue_vlabel,  NOQUOTE))" ROLE = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel,        NOQUOTE))" LEVEL =
+12189     "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel,       NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel,       NOQUOTE))" TRAIN = "%sysfunc(sasmsg(sashelp.dmine, rpt_missingcount_vlabel, NOQUOTE, TRAIN))";
+12190  set EMWS1.Impt_META(where=(IMPUTED ne '') keep=NAME METHOD IMP VALUE ROLE NMISS LEVEL LABEL rename=(IMP=IMPUTED NMISS=TRAIN)) end=eof;
+12191  if eof then call symput('_nimpute', '1');
+12192  run;
+12193  proc print data=EMWS1.Impt_RESULT(obs=500) label noobs;
+12194  title9 "%sysfunc(sasmsg(sashelp.dmine, rpt_imputationsummary_title, NOQUOTE))";
+12195  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_numberobs_title,         NOQUOTE))";
+12196  run;
+12197  proc freq data=EMWS1.Impt_RESULT noprint;
+12198  table train /out=WORK.ImptSUMMARY nocum;
+12199  run;
+12200  proc sort data=WORK.ImptSUMMARY NOTHREADS;
+12201  by descending TRAIN;
+12202  run;
+12203  proc print data=WORK.ImptSUMMARY(obs=100) label;
+12204  label COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_varcount_vlabel,  NOQUOTE))" PERCENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_varpercent_vlabel,  NOQUOTE))";
+12205  title9 ' ';
+12206  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_missingvardistribution_title, NOQUOTE))";
+12207  run;
+12208  data EMWS1.Impt_EMSCOREVAR;
+12209  length Name $32 formula $70 file $200;
+12210  keep NAME Formula file;
+12211  set EMWS1.Impt_META end=eof;
+12212  *set EMWS1.Impt_RESULT end=eof;
+12213  if M ne '' then do;
+12214  NAME= M;
+12215  file="IMPUTECODE/"!!strip(NAME)!!'.sas';
+12216  output;
+12217  end;
+12218  if IMP ne '' then do;
+12219  NAME= IMP;
+12220  file="IMPUTECODE/"!!strip(NAME)!!'.sas';
+12221  output;
+12222  end;
+12223  run;
