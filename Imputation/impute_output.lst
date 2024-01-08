@@ -1,0 +1,55 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                05:51:31
+*------------------------------------------------------------*
+* Training Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+ 
+Variable Summary
+ 
+            Measurement    Frequency
+Role           Level         Count
+ 
+INPUT        BINARY            2
+INPUT        INTERVAL          5
+INPUT        NOMINAL           4
+REJECTED     NOMINAL           2
+TARGET       BINARY            1
+
+
+*------------------------------------------------------------*
+* Score Output
+*------------------------------------------------------------*
+
+
+*------------------------------------------------------------*
+* Report Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+Imputation Summary
+Number Of Observations
+ 
+                                                                                                                         Number of
+                      Impute                                                       Measurement                             Missing
+Variable Name         Method    Imputed Variable          Impute Value    Role        Level             Label            for TRAIN
+ 
+Age                   MEAN      IMP_Age                   36.557654076    INPUT     INTERVAL                                    14
+Satisfaction_Level    COUNT     IMP_Satisfaction_Level    Unsatisfied     INPUT     NOMINAL       Satisfaction Level             2
+ 
+ 
+ 
+ 
+Variable Distribution Training Data
+ 
+        Number of
+          Missing    Number of    Percent of
+Obs     for TRAIN    Variables     Variables
+ 
+ 1             14        1            50
+ 2              2        1            50

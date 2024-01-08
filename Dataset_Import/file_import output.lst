@@ -1,0 +1,103 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                05:51:28
+*------------------------------------------------------------*
+* Training Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+ 
+Variable Summary
+ 
+            Measurement    Frequency
+Role           Level         Count
+ 
+ID           INTERVAL          1
+INPUT        BINARY            2
+INPUT        INTERVAL          5
+INPUT        NOMINAL           4
+REJECTED     NOMINAL           2
+TARGET       BINARY            1
+ 
+ 
+ 
+ 
+ 
+The CONTENTS Procedure
+ 
+Data Set Name        EMWS1.FIMPORT2_DATA                                      Observations          1020
+Member Type          DATA                                                     Variables             15
+Engine               V9                                                       Indexes               0
+Created              07/01/2024 05:51:27                                      Observation Length    128
+Last Modified        07/01/2024 05:51:27                                      Deleted Observations  0
+Protection                                                                    Compressed            NO
+Data Set Type                                                                 Sorted                NO
+Label
+Data Representation  SOLARIS_X86_64, LINUX_X86_64, ALPHA_TRU64, LINUX_IA64
+Encoding             utf-8  Unicode (UTF-8)
+ 
+ 
+                               Engine/Host Dependent Information
+ 
+Data Set Page Size          131072
+Number of Data Set Pages    2
+First Data Page             1
+Max Obs per Page            1022
+Obs in First Data Page      992
+Number of Data Set Repairs  0
+Filename                    /home/u63437975/WQD7005_AA1/Workspaces/EMWS1/fimport2_data.sas7bdat
+Release Created             9.0401M7
+Host Created                Linux
+Inode Number                4496434631
+Access Permission           rw-r--r--
+Owner Name                  u63437975
+File Size                   384KB
+File Size (bytes)           393216
+ 
+ 
+                           Alphabetic List of Variables and Attributes
+ 
+ #    Variable                    Type    Len    Format     Informat    Label
+ 
+ 3    Age                         Num       8    BEST12.    BEST32.
+12    Average_Rating              Num       8                           Average Rating
+ 7    Churn                       Num       8    BEST12.    BEST32.
+ 4    City                        Char     13    $13.       $13.
+ 8    Customer_ID                 Num       8                           Customer ID
+14    Days_Since_Last_Purchase    Num       8                           Days Since Last Purchase
+13    Discount_Applied            Char      5                           Discount Applied
+ 6    Discount_Applied_Binary     Num       8    BEST12.    BEST32.
+ 5    FavoriteCategory            Char     11    $11.       $11.
+ 1    Gender                      Char      6    $6.        $6.
+ 2    Gender_Binary               Num       8    BEST12.    BEST32.
+11    Items_Purchased             Num       8                           Items Purchased
+ 9    Membership_Type             Char      6                           Membership Type
+15    Satisfaction_Level          Char     11                           Satisfaction Level
+10    Total_Spend                 Num       8                           Total Spend
+
+
+*------------------------------------------------------------*
+* Score Output
+*------------------------------------------------------------*
+
+
+*------------------------------------------------------------*
+* Report Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+ 
+Exported Attributes for TRAIN Port
+ 
+            Measurement    Frequency
+Role           Level         Count
+ 
+ID           INTERVAL          1
+INPUT        BINARY            2
+INPUT        INTERVAL          5
+INPUT        NOMINAL           4
+REJECTED     NOMINAL           2
+TARGET       BINARY            1

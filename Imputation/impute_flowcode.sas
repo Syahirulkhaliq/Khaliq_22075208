@@ -1,0 +1,15 @@
+*;
+*MOST FREQUENT VALUE (COUNT);
+*;
+length IMP_Satisfaction_Level $11;
+label IMP_Satisfaction_Level = 'Imputed: Satisfaction Level';
+IMP_Satisfaction_Level = Satisfaction_Level;
+if Satisfaction_Level = '' then IMP_Satisfaction_Level = 'Unsatisfied';
+*;
+*MEAN-MAX-MIN-MEDIAN-MIDRANGE AND ROBUST ESTIMATES;
+*;
+format IMP_Age BEST12.0;
+label IMP_Age = 'Imputed Age';
+length IMP_Age 8;
+IMP_Age = Age;
+if missing(Age) then IMP_Age = 36.557654076;

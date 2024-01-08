@@ -1,0 +1,285 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                08:59:46
+Site:                70094220
+Platform:            Linux
+Maintenance Release: 9.04.01M7P080620
+EM Version:          15.2
+* 
+*------------------------------------------------------------*
+* Training Log
+Date:                07 January 2024
+Time:                08:59:45
+*------------------------------------------------------------*
+11448  proc freq data=EMWS1.Part_VariableSet noprint;
+11449  table ROLE*LEVEL/out=WORK.PartMETA;
+11450  run;
+11451  proc print data=WORK.PartMETA label noobs;
+11452  var ROLE LEVEL COUNT;
+11453  label ROLE = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel, NOQUOTE))" LEVEL = "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel, NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel, NOQUOTE))";
+11454  title9 ' ';
+11455  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_varSummary_title  , NOQUOTE))";
+11456  run;
+11457  title10;
+11465  *------------------------------------------------------------*;
+11466  * Part: Determine number of observations;
+11467  *------------------------------------------------------------*;
+11468  proc sql;
+11469  reset noprint;
+11470  select count(*) into :_tmpa from EMWS1.Trans_TRAIN
+11471  ;
+11472  quit;
+trainPct=80 validatePct=0 testPct=20
+11473  *------------------------------------------------------------*;
+11474  * Part: Create random partition;
+11475  *------------------------------------------------------------*;
+11476  data
+11477  EMWS1.Part_TRAIN(label="")
+11478  EMWS1.Part_TEST(label="")
+11479  ;
+11480  retain _seed_ 12345;
+11481  drop _seed_ _genvalue_;
+11482  call ranuni(_seed_, _genvalue_);
+11483  label _dataobs_ = "%sysfunc(sasmsg(sashelp.dmine, sample_dataobs_vlabel, NOQUOTE))";
+11484  _dataobs_ = _N_;
+11485  drop _c00:;
+11486  set EMWS1.Trans_TRAIN;
+11487  if (1020 +1-_n_)*_genvalue_ <= (816 - _C000001) then do;
+11488  _C000001 + 1;
+11489  output EMWS1.Part_TRAIN;
+11490  end;
+11491  else do;
+11492  _C000002 + 1;
+11493  output EMWS1.Part_TEST;
+11494  end;
+11495  run;
+11496  run;
+11497  data _tempNobs;
+11498  length Type $8 Table $32 Nobs 8;
+11499  label type= "%sysfunc(sasmsg(sashelp.dmine, meta_type_vlabel,    NOQUOTE))" table = "%sysfunc(sasmsg(sashelp.dmine, meta_dataset_vlabel, NOQUOTE))" nobs = "%sysfunc(sasmsg(sashelp.dmine,  rpt_numObs_vlabel,   NOQUOTE))";
+11500  type='DATA';
+11501  table="EMWS1.Trans_TRAIN";
+11502  Nobs=1020;
+11503  output;
+11504  type='TRAIN';
+11505  table="EMWS1.Part_TRAIN";
+11506  Nobs=816;
+11507  output;
+11508  type='TEST';
+11509  table="EMWS1.Part_TEST";
+11510  Nobs=204;
+11511  output;
+11512  run;
+11513  %let _cn = %sysfunc(getoption(CENTER));
+11514  %let _nb = %sysfunc(getoption(NUMBER));
+11515  options nonumber nocenter;
+11516  proc print data=_tempNobs noobs label;
+11517  title9 ' ';
+11518  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_partitionSummary_title, NOQUOTE))";
+11519  run;
+11520  title10;
+11521  options &_cn &_nb;
+11522  run;
+*------------------------------------------------------------*
+* Score Log
+Date:                07 January 2024
+Time:                08:59:45
+*------------------------------------------------------------*
+11624  *------------------------------------------------------------*;
+11625  * Part: Computing metadata for TRAIN data;
+11626  *------------------------------------------------------------*;
+*------------------------------------------------------------*
+* Report Log
+Date:                07 January 2024
+Time:                08:59:45
+*------------------------------------------------------------*
+12000  *------------------------------------------------------------*;
+12001  * Part: Computing statistics for class target variables;
+12002  *------------------------------------------------------------*;
+12003  ods listing close;
+12004  ods output onewayfreqs=WORK.TEMPFREQ;
+12005  proc freq data = EMWS1.Trans_TRAIN order=formatted addnames;
+12006  table Churn / missing;
+12007  run;
+12008  quit;
+12009  ods listing;
+12010  data WORK.Part_BAR(keep=_VARIABLE_ TYPE COUNT PERCENT _X_ _XLABEL_);
+12011  label _VARIABLE_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_variable_vlabel, NOQUOTE))" Type = "%sysfunc(sasmsg(sashelp.dmine, rpt_type_vlabel,         NOQUOTE))" _X_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_numValue_vlabel, NOQUOTE))" _XLABEL_ =
+12012     "%sysfunc(sasmsg(sashelp.dmine, rpt_fmtValue_vlabel ,    NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel,        NOQUOTE))" PERCENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_percent_vlabel,      NOQUOTE))";
+12013  dsid = open("WORK.TEMPFREQ");
+12014  varnum = varnum(dsid, 'VARIABLE');
+12015  freqnum = varnum(dsid, 'FREQUENCY');
+12016  pvarnum = varnum(dsid, 'PERCENT');
+12017  typenum = varnum(dsid, '_TYPE_');
+12018  length _VARIABLE_ $32 TYPE $1 _XLABEL_ $32;
+12019  do while(^fetch(dsid));
+12020  _VARIABLE_ = strip(getvarc(dsid, varnum));
+12021  count = getvarn(dsid, freqnum);
+12022  percent= getvarn(dsid, pvarnum);
+12023  vvarnum = varnum(dsid, _VARIABLE_);
+12024  type = vartype(dsid, vvarnum);
+12025  fvarnum = varnum(dsid, 'F_'!!substr(_VARIABLE_, 1, 30));
+12026  _XLABEL_ = left(getvarc(dsid, fvarnum));
+12027  _X_ = .;
+12028  if TYPE eq 'N' then _X_ = getvarn(dsid, vvarnum);
+12029  output;
+12030  end;
+12031  dsid = close(dsid);
+12032  run;
+12033  proc sort data=WORK.Part_BAR NOTHREADS;
+12034  by _VARIABLE_;
+12035  run;
+12036  proc sort data=WORK.M0OZ50FY;
+12037  by Name;
+12038  run;
+12039  data WORK.Part_BAR;
+12040  merge WORK.Part_BAR(in=_a) WORK.M0OZ50FY(keep=Name Label Role rename=(Name=_Variable_ Label=_Label_));
+12041  by _Variable_;
+12042  label Role = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel ,  NOQUOTE))";
+12043  label Label = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel , NOQUOTE))";
+12044  if _a then output;
+12045  run;
+WARNING: Multiple lengths were specified for the BY variable _VARIABLE_ by input data sets. This might cause unexpected results.
+12046  data EMWS1.Part_CLASS;
+12047  length DATA $8;
+12048  set WORK.Part_BAR;
+12049  DATA = "DATA";
+12050  run;
+12051  *------------------------------------------------------------*;
+12052  * Part: Computing statistics for interval target variables;
+12053  *------------------------------------------------------------*;
+12054  *------------------------------------------------------------*;
+12055  * Part: Computing statistics for class target variables;
+12056  *------------------------------------------------------------*;
+12057  ods listing close;
+12058  ods output onewayfreqs=WORK.TEMPFREQ;
+12059  proc freq data = EMWS1.Part_TRAIN order=formatted addnames;
+12060  table Churn / missing;
+12061  run;
+12062  quit;
+12063  ods listing;
+12064  data WORK.Part_BAR(keep=_VARIABLE_ TYPE COUNT PERCENT _X_ _XLABEL_);
+12065  label _VARIABLE_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_variable_vlabel, NOQUOTE))" Type = "%sysfunc(sasmsg(sashelp.dmine, rpt_type_vlabel,         NOQUOTE))" _X_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_numValue_vlabel, NOQUOTE))" _XLABEL_ =
+12066     "%sysfunc(sasmsg(sashelp.dmine, rpt_fmtValue_vlabel ,    NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel,        NOQUOTE))" PERCENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_percent_vlabel,      NOQUOTE))";
+12067  dsid = open("WORK.TEMPFREQ");
+12068  varnum = varnum(dsid, 'VARIABLE');
+12069  freqnum = varnum(dsid, 'FREQUENCY');
+12070  pvarnum = varnum(dsid, 'PERCENT');
+12071  typenum = varnum(dsid, '_TYPE_');
+12072  length _VARIABLE_ $32 TYPE $1 _XLABEL_ $32;
+12073  do while(^fetch(dsid));
+12074  _VARIABLE_ = strip(getvarc(dsid, varnum));
+12075  count = getvarn(dsid, freqnum);
+12076  percent= getvarn(dsid, pvarnum);
+12077  vvarnum = varnum(dsid, _VARIABLE_);
+12078  type = vartype(dsid, vvarnum);
+12079  fvarnum = varnum(dsid, 'F_'!!substr(_VARIABLE_, 1, 30));
+12080  _XLABEL_ = left(getvarc(dsid, fvarnum));
+12081  _X_ = .;
+12082  if TYPE eq 'N' then _X_ = getvarn(dsid, vvarnum);
+12083  output;
+12084  end;
+12085  dsid = close(dsid);
+12086  run;
+12087  proc sort data=WORK.Part_BAR NOTHREADS;
+12088  by _VARIABLE_;
+12089  run;
+12090  proc sort data=WORK.M0OZ50FY;
+12091  by Name;
+12092  run;
+12093  data WORK.Part_BAR;
+12094  merge WORK.Part_BAR(in=_a) WORK.M0OZ50FY(keep=Name Label Role rename=(Name=_Variable_ Label=_Label_));
+12095  by _Variable_;
+12096  label Role = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel ,  NOQUOTE))";
+12097  label Label = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel , NOQUOTE))";
+12098  if _a then output;
+12099  run;
+WARNING: Multiple lengths were specified for the BY variable _VARIABLE_ by input data sets. This might cause unexpected results.
+12100  data WORK.Part_BAR;
+12101  length DATA $8;
+12102  set WORK.Part_BAR;
+12103  DATA = "TRAIN";
+12104  run;
+12105  data EMWS1.Part_CLASS;
+12106  set EMWS1.Part_CLASS WORK.Part_BAR;
+12107  run;
+12108  *------------------------------------------------------------*;
+12109  * Part: Computing statistics for interval target variables;
+12110  *------------------------------------------------------------*;
+12111  *------------------------------------------------------------*;
+12112  * Part: Computing statistics for class target variables;
+12113  *------------------------------------------------------------*;
+12114  ods listing close;
+12115  ods output onewayfreqs=WORK.TEMPFREQ;
+12116  proc freq data = EMWS1.Part_TEST order=formatted addnames;
+12117  table Churn / missing;
+12118  run;
+12119  quit;
+12120  ods listing;
+12121  data WORK.Part_BAR(keep=_VARIABLE_ TYPE COUNT PERCENT _X_ _XLABEL_);
+12122  label _VARIABLE_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_variable_vlabel, NOQUOTE))" Type = "%sysfunc(sasmsg(sashelp.dmine, rpt_type_vlabel,         NOQUOTE))" _X_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_numValue_vlabel, NOQUOTE))" _XLABEL_ =
+12123     "%sysfunc(sasmsg(sashelp.dmine, rpt_fmtValue_vlabel ,    NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel,        NOQUOTE))" PERCENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_percent_vlabel,      NOQUOTE))";
+12124  dsid = open("WORK.TEMPFREQ");
+12125  varnum = varnum(dsid, 'VARIABLE');
+12126  freqnum = varnum(dsid, 'FREQUENCY');
+12127  pvarnum = varnum(dsid, 'PERCENT');
+12128  typenum = varnum(dsid, '_TYPE_');
+12129  length _VARIABLE_ $32 TYPE $1 _XLABEL_ $32;
+12130  do while(^fetch(dsid));
+12131  _VARIABLE_ = strip(getvarc(dsid, varnum));
+12132  count = getvarn(dsid, freqnum);
+12133  percent= getvarn(dsid, pvarnum);
+12134  vvarnum = varnum(dsid, _VARIABLE_);
+12135  type = vartype(dsid, vvarnum);
+12136  fvarnum = varnum(dsid, 'F_'!!substr(_VARIABLE_, 1, 30));
+12137  _XLABEL_ = left(getvarc(dsid, fvarnum));
+12138  _X_ = .;
+12139  if TYPE eq 'N' then _X_ = getvarn(dsid, vvarnum);
+12140  output;
+12141  end;
+12142  dsid = close(dsid);
+12143  run;
+12144  proc sort data=WORK.Part_BAR NOTHREADS;
+12145  by _VARIABLE_;
+12146  run;
+12147  proc sort data=WORK.M0OZ50FY;
+12148  by Name;
+12149  run;
+12150  data WORK.Part_BAR;
+12151  merge WORK.Part_BAR(in=_a) WORK.M0OZ50FY(keep=Name Label Role rename=(Name=_Variable_ Label=_Label_));
+12152  by _Variable_;
+12153  label Role = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel ,  NOQUOTE))";
+12154  label Label = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel , NOQUOTE))";
+12155  if _a then output;
+12156  run;
+WARNING: Multiple lengths were specified for the BY variable _VARIABLE_ by input data sets. This might cause unexpected results.
+12157  data WORK.Part_BAR;
+12158  length DATA $8;
+12159  set WORK.Part_BAR;
+12160  DATA = "TEST";
+12161  run;
+12162  data EMWS1.Part_CLASS;
+12163  set EMWS1.Part_CLASS WORK.Part_BAR;
+12164  run;
+12165  *------------------------------------------------------------*;
+12166  * Part: Computing statistics for interval target variables;
+12167  *------------------------------------------------------------*;
+12168  data EMWS1.Part_CLASS(rename=(_VARIABLE_=VARIABLE _X_=VALUE _XLABEL_=FORMATTEDVALUE));
+12169  label DATA = "%sysfunc(sasmsg(sashelp.dmine, rpt_data_vlabel ,   NOQUOTE))";
+12170  set EMWS1.Part_CLASS;
+12171  drop type role;
+12172  run;
+12173  proc sort data=EMWS1.Part_CLASS NOTHREADS;
+12174  by DATA;
+12175  run;
+12176  %let _cn = %sysfunc(getoption(CENTER));
+12177  %let _nb = %sysfunc(getoption(NUMBER));
+12178  options nonumber nocenter;
+12179  proc print data=EMWS1.Part_CLASS noobs label;
+12180  by DATA;
+12181  title9 ' ';
+12182  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_classTargetStats_title, NOQUOTE))";
+12183  run;
+12184  title10;
+12185  options &_cn &_nb;

@@ -1,0 +1,42 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                08:55:31
+*------------------------------------------------------------*
+* Training Output
+*------------------------------------------------------------*
+ 
+ 
+ 
+ 
+Variable Summary
+ 
+            Measurement    Frequency
+Role           Level         Count
+ 
+INPUT        BINARY            2
+INPUT        INTERVAL          5
+INPUT        NOMINAL           4
+REJECTED     NOMINAL           2
+TARGET       BINARY            1
+ 
+ 
+ 
+Computed Transformations
+(maximum 500 observations printed)
+ 
+                             Input
+Input Name         Role      Level      Name                    Level               Formula
+ 
+IMP_Age            INPUT    INTERVAL    LOG_IMP_Age            INTERVAL    log(IMP_Age  + 1)
+Items_Purchased    INPUT    INTERVAL    LOG_Items_Purchased    INTERVAL    log(Items_Purchased  + 1)
+
+
+*------------------------------------------------------------*
+* Score Output
+*------------------------------------------------------------*
+
+
+*------------------------------------------------------------*
+* Report Output
+*------------------------------------------------------------*

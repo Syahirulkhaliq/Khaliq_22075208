@@ -1,0 +1,3580 @@
+*------------------------------------------------------------*
+User:                u63437975
+Date:                07 January 2024
+Time:                08:59:50
+Site:                70094220
+Platform:            Linux
+Maintenance Release: 9.04.01M7P080620
+EM Version:          15.2
+* 
+*------------------------------------------------------------*
+* Training Log
+Date:                07 January 2024
+Time:                08:59:48
+*------------------------------------------------------------*
+15240  proc freq data=EMWS1.HPDMForest_VariableSet noprint;
+15241  table ROLE*LEVEL/out=WORK.HPDMForestMETA;
+15242  run;
+15243  proc print data=WORK.HPDMForestMETA label noobs;
+15244  var ROLE LEVEL COUNT;
+15245  label ROLE = "%sysfunc(sasmsg(sashelp.dmine, meta_role_vlabel, NOQUOTE))" LEVEL = "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel, NOQUOTE))" COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel, NOQUOTE))";
+15246  title9 ' ';
+15247  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_varSummary_title  , NOQUOTE))";
+15248  run;
+15249  title10;
+15250  %let EMNORLEN = %DMNORLEN;
+EMWS1.Part_TRAIN EMWS1.Part_TRAIN
+EMWS1.Part_TRAIN EMWS1.Part_TRAIN EMWS1 Part_TRAIN
+EMWS1.Part_TRAIN EMWS1.Part_TRAIN
+EMWS1.Part_TRAIN EMWS1.Part_TRAIN EMWS1 Part_TRAIN
+15297  data WORK.HPDMForest_EVENT(KEEP=VARIABLE LABEL LEVEL EVENT NUMLEVELS ORDER);
+15298  length ORDER $20;
+15299  label VARIABLE = "%sysfunc(sasmsg(sashelp.dmine, rpt_target_vlabel,  NOQUOTE))" EVENT = "%sysfunc(sasmsg(sashelp.dmine, assmt_event_vlabel, NOQUOTE))" NUMLEVELS = "%sysfunc(sasmsg(sashelp.dmine, rpt_numcat_vlabel, NOQUOTE))" LEVEL =
+15300     "%sysfunc(sasmsg(sashelp.dmine, meta_level_vlabel, NOQUOTE))" ORDER = "%sysfunc(sasmsg(sashelp.dmine, meta_order_vlabel, NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel, NOQUOTE))";
+15301  set EMWS1.HPDMFOREST_CHURN_DM( where=(_TYPE_="TARGET"));
+15302  NumLevels=2;
+15303  select(upcase(ORDER));
+15304  when('DESC') ORDER = 'Descending';
+15305  when('ASC') ORDER = 'Ascending';
+15306  when('FMTDESC') ORDER = 'Formatted Descending';
+15307  when('FMTASC') ORDER = 'Formatted Ascending';
+15308  otherwise ORDER = 'Descending';
+15309  end;
+15310  output;
+15311  run;
+15312  title9 ' ';
+15313  proc print data=WORK.HPDMForest_EVENT noobs label;
+15314  var VARIABLE EVENT LEVEL NUMLEVELS ORDER LABEL;
+15315  title9 ' ';
+15316  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_modelEvent_title  , NOQUOTE))";
+15317  run;
+15318  title10;
+"No decisions defined for target "Churn"."
+15319  proc print data = EMWS1.HPDMForest_Churn_DM noobs label;
+15320  var _type_ variable label;
+15321  where _type_ ^in('MATRIX', 'DECISION', 'TRAINPRIOR', 'DATAPRIOR', 'DECPRIOR');
+15322  label _TYPE_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_type_vlabel,     NOQUOTE))" VARIABLE = "%sysfunc(sasmsg(sashelp.dmine, rpt_variable_vlabel, NOQUOTE))" LABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_label_vlabel, NOQUOTE))";
+15323  title9 ' ';
+15324  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_predDecVars_title  , NOQUOTE))";
+15325  run;
+15326  title10;
+15327  %let EMEXCEPTIONSTRING=;
+15785  *------------------------------------------------------------*;
+15786  * HPDMForest: Generation of macros and macro variables;
+15787  * To see the code generated, set the EM_DEBUG macro variable to SOURCE or _ALL_;
+15788  *------------------------------------------------------------*;
+ 
+15789  %let EMEXCEPTIONSTRING=;
+15790  *------------------------------------------------------------*;
+15791  * TRAIN: HPDMForest;
+15792  *------------------------------------------------------------*;
+15793  %let EM_ACTION = TRAIN;
+15794  %let syscc = 0;
+15795  %macro main;
+15796
+15797     %if %upcase(&EM_ACTION) = CREATE %then %do;
+15798         filename temp catalog 'sashelp.hpdm.hpdmforest_create.source';
+15799         %include temp;
+15800         filename temp;
+15801         %hpdm_Forest_create;
+15802     %end;
+15803     %else
+15804     %if %upcase(&EM_ACTION) = TRAIN %then %do;
+15805         filename temp catalog 'sashelp.hpdm.hpdmforest_train.source';
+15806         %include temp;
+15807         filename temp;
+15808         %hpdm_Forest_train;
+15809     %end;
+15810     %else
+15811     %if %upcase(&EM_ACTION) = SCORE %then %do;
+15812         %em_checkmacro(name=EM_PROPERTY_VARSELECT, value=Y, global=Y);
+15813         %em_checkmacro(name=EM_PROPERTY_VIMETHOD, value=LOSSREDUCTION);
+15814          %if "&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" = "RBA" %then %do;
+15815              %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+15816              %if %sysfunc(fileexist(&EM_USER_OUTMDLFILE))=0 %then %do;
+15817                  /* when the Variable Importance method has changed to RBA after running with Use as Modeling=No, need to re-train to create the outmdl file */
+15818                 filename temp catalog 'sashelp.hpdm.hpdmforest_train.source';
+15819                 %include temp;
+15820                 filename temp;
+15821                 %hpdm_Forest_train;
+15822              %end;
+15823          %end;
+15824          filename temp catalog 'sashelp.hpdm.hpdmforest_score.source';
+15825          %include temp;
+15826          filename temp;
+15827          %hpdm_Forest_score;
+15828     %end;
+15829     %else
+15830     %if %upcase(&EM_ACTION) = REPORT %then %do;
+15831         filename temp catalog 'sashelp.hpdm.hpdmforest_report.source';
+15832         %include temp;
+15833         filename temp;
+15834         %hpdm_Forest_report;
+15835     %end;
+15836     %else
+15837
+15838  %mend main;
+15839
+15840  %main;
+NOTE: %INCLUDE (level 1) file TEMP is file SASHELP.HPDM.HPDMFOREST_TRAIN.SOURCE.
+15841 +%Macro hpdm_Forest_Train;
+15843 +   /* retrieve data to model based on presence of grid processing */
+15844 +   %em_getname(key=HPDS2SCORE, type=FILE, extension=sas);
+15845 +   %hpdm_dataprep(data=, out=, metadata=, code=, ROLE=TRAIN, where=,
+15846 +        outDS2Code=&em_user_HPDS2SCORE, append=N, host=, nodes=, nthreads=, details=);
+15848 +   /* check for the existence of EM_HPDM_TRAIN table */
+15849 +   %if &EM_HPDM_TRAIN eq  %then %do;
+15850 +       %let EMEXCEPTIONSTRING = exception.server.IMPORT.NOTRAIN,1;
+15851 +       %put &em_codebar;
+15852 +       %let errormsg = %sysfunc(sasmsg(sashelp.dmine, error_nodeTrainRawData_note, NOQUOTE));
+15853 +       %put &errormsg;
+15854 +       %put &em_codebar;
+15855 +       %goto doendm;
+15856 +   %end;
+15857 +   %else
+15858 +       %let EMEXCEPTIONSTRING =;
+15860 +   %if ^%sysfunc(exist(&EM_HPDM_TRAIN)) AND ^%sysfunc(exist(&EM_HPDM_TRAIN, VIEW)) %then %do;
+15861 +       %let EMEXCEPTIONSTRING = exception.server.IMPORT.NOTRAIN,1;
+15862 +       %put &em_codebar;
+15863 +       %let errormsg = %sysfunc(sasmsg(sashelp.dmine, error_nodeTrainRawData_note, NOQUOTE));
+15864 +       %put &errormsg;
+15865 +       %put &em_codebar;
+15866 +       %goto doendm;
+15867 +   %end;
+15868 +   %else
+15869 +       %let EMEXCEPTIONSTRING =;
+15872 +   /* Check for the existence of one target variable*/
+15873 +   %if  &EM_NUM_TARGET ne 1 %then %do;
+15874 +        %let EMEXCEPTIONSTRING = exception.server.USE1TARGET;
+15875 +        %put &em_codebar;
+15876 +        %let errormsg = %sysfunc(sasmsg(sashelp.dmine, metadata.use01target_err, NOQUOTE));
+15877 +        %put &errormsg;
+15878 +        %put &em_codebar;
+15879 +        %goto doendm;
+15880 +   %end;
+15881 +   %else
+15882 +       %let EMEXCEPTIONSTRING =;
+15884 +   /* Check target measurement level and throw exception if ordinal target is detected */
+15885 +   %if %EM_TARGET_LEVEL eq ORDINAL %then %do;
+15886 +        %let EMEXCEPTIONSTRING = exception.server.METADATA.INVALIDORDINALTARGET;
+15887 +        %put &em_codebar;
+15888 +        %let errormsg = %sysfunc(sasmsg(sashelp.dmine, ordinaltargetpresent_note, NOQUOTE));
+15889 +        %put &errormsg;
+15890 +        %put &em_codebar;
+15891 +        %goto doendm;
+15892 +   %end;
+15893 +   %else
+15894 +       %let EMEXCEPTIONSTRING =;
+15896 +   /* Check for the existence of one input variable*/
+15897 +   %if  (&EM_NUM_INTERVAL_INPUT < 1) and (&EM_NUM_BINARY_INPUT < 1) and (&EM_NUM_ORDINAL_INPUT < 1)
+15898 +        and (&EM_NUM_NOMINAL_INPUT < 1) and (&EM_NUM_INTERVAL_REJECTED < 1) and (&EM_NUM_BINARY_REJECTED < 1)
+15899 +         and (&EM_NUM_ORDINAL_REJECTED < 1) and (&EM_NUM_NOMINAL_REJECTED < 1)%then %do;
+15900 +        %let EMEXCEPTIONSTRING = exception.server.USEATLEAST1INPUTREJECT;
+15901 +        %put &em_codebar;
+15902 +        %let errormsg = %sysfunc(sasmsg(sashelp.dmine, error_noInput_note, NOQUOTE));
+15903 +        %put &errormsg;
+15904 +        %put &em_codebar;
+15905 +        %goto doendm;
+15906 +   %end;
+15907 +   %else
+15908 +       %let EMEXCEPTIONSTRING =;
+15910 +    %em_checkmacro(name=EM_PROPERTY_MODELING, value=Y, global=Y);
+15912 +    %if "&EM_PROPERTY_MODELING" eq "Y" %then %do;
+15913 +       %let EM_TOOLTYPE = MODEL;
+15914 +    %end;
+15915 +    %else  %do;
+15916 +       %let EM_TOOLTYPE = UTIL;
+15917 +       %if %sysfunc(exist(&em_data_eminfo)) %then %do;
+15918 +          proc delete data=&em_data_eminfo;
+15919 +          run;
+15920 +       %end;
+15921 +    %end;
+15923 +   /* data sets */
+15924 +   %EM_GETNAME(KEY=ITERATION, type=DATA);
+15925 +   %EM_GETNAME(KEY=VARIMPORT, type=DATA);
+15926 +   %EM_GETNAME(KEY=BASELINE, type=DATA);
+15928 +   %let out=;
+15929 +   %if "&em_hpdm_train" ne "&em_import_data" %then %do;
+15930 +      %let out = &em_hpdm_train_score;
+15931 +   %end;
+15933 +   %let traindata = &EM_HPDM_TRAIN;
+15934 +   %if "&em_hpdm_train" eq "&em_import_data" %then %do;
+15935 +      /* check if a training and validate table are passed in as 2 seperate tables; if so, */
+15936 +      /* create one table containing the _partind_ variable to be used for modelling       */
+15937 +      %if (%sysfunc(exist(&em_import_data)) or %sysfunc(exist(&em_import_data, VIEW))) and
+15938 +          ("&EM_IMPORT_VALIDATE" ne "") and (%sysfunc(exist(&em_import_validate)) or %sysfunc(exist(&em_import_validate, VIEW))) %then %do;
+15939 +             %let traindata = &EM_NODEID._traindata;
+15940 +             data &traindata  / view=&traindata;
+15941 +                set &em_import_data(in=_a) &em_import_validate(in=_b);
+15942 +                if _a then _PartInd_ = 1;
+15943 +                else _PartInd_=0;
+15944 +             run;
+15945 +      %end;
+15946 +   %end;
+15948 +    * retrieve the ordering of the target variable from DECMETA;
+15949 +    * and use it to determine the event level for non-interval target;
+15950 +   %if %EM_TARGET_LEVEL ne INTERVAL %then %do;
+15951 +       proc sql noprint;
+15952 +           select order into :_target_order from &EM_DEC_DECMETA
+15953 +               where upcase(variable) eq "%upcase(%EM_TARGET)";
+15954 +       quit;
+15955 +   %end;
+15956 +   %else %let _target_order =;
+15958 +   /* load hpforest macros */
+15959 +   filename temp catalog 'sashelp.hpdm.hpdmforest_macros.source';
+15960 +   %include temp;
+15961 +   filename temp;
+15964 +    /* run HPForest model */
+15965 +    %HPDM_HPForest(indata=&traindata,
+15966 +           target = %EM_TARGET,
+15967 +           targetOrder = &_target_order,
+15968 +           alpha=&EM_PROPERTY_ALPHA,
+15969 +           catbins=&EM_PROPERTY_CATBINS,
+15970 +           exhaustive=&EM_PROPERTY_EXHAUSTIVE,
+15971 +           leafsizemethod=&EM_PROPERTY_LEAFSIZEMETHOD,
+15972 +           leaffraction=&EM_PROPERTY_LEAFFRACTION,
+15973 +           leafsize=&EM_PROPERTY_LEAFSIZE,
+15974 +           maxdepth=&EM_PROPERTY_MAXDEPTH,
+15975 +           maxtrees=&EM_PROPERTY_MAXTREES,
+15976 +           mincatsize=&EM_PROPERTY_MINCATSIZE,
+15977 +           seed=&EM_PROPERTY_SEED,
+15978 +           splitsize=&EM_PROPERTY_SPLITSIZE,
+15979 +           numobsmethod=&EM_PROPERTY_NUMOBSMETHOD,
+15980 +           trainfraction=&EM_PROPERTY_TRAINFRACTION,
+15981 +           trainn=&EM_PROPERTY_TRAINN,
+15982 +           vars_to_try=&EM_PROPERTY_VARS_TO_TRY,
+15983 +           missing=&EM_PROPERTY_MISSING,
+15984 +           minuseinsearch=&EM_PROPERTY_MINUSEINSEARCH,
+15985 +           %if &out ne "" %then %do;
+15986 +             out=&out,
+15987 +           %end;
+15988 +           outbase=&EM_USER_BASELINE,
+15989 +           outiter=&EM_USER_ITERATION,
+15990 +           outimport=&EM_USER_VARIMPORT
+15991 +           );
+15993 +   /* delete temporary traindata is training and validate are both passed into the node */
+15994 +    %if "&traindata" ne "&em_hpdm_train" %then %do;
+15995 +      proc datasets lib=work nolist;
+15996 +        delete &traindata /mt=view;
+15997 +      run;
+15998 +    %end;
+16000 +    %if "&EM_PROPERTY_MODELING" eq "Y" %then %do;
+16002 +        /* create flow and publish score code */
+16003 +        filename flowref "&EM_FILE_EMFLOWSCORECODE";
+16004 +        filename pubref "&EM_FILE_EMPUBLISHSCORECODE";
+16006 +        %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+16008 +        /* add decision and residual score code; create classification tables and fit statistics on the model */
+16009 +        %em_model(DATA=, TARGET=&EM_DEC_TARGET, DECSCORECODE=Y, CLASSIFICATION=Y, FITSTATISTICS=Y, RESIDUALS=Y);
+16011 +        %global hpfst_score_input hpfst_score_output;
+16012 +        %let hpfst_score_input = &em_score_output;
+16013 +        %let hpfst_score_output = &em_score_output;
+16015 +        data _null_;
+16016 +          file flowref;
+16017 +          set &EM_DATA_VARIABLESET(where=((ROLE='INPUT' and USE in('Y', 'D')) or ROLE='REJECTED' and USE='Y')) end=eof;
+16019 +          if _n_=1 then do;
+16020 +            put '%macro em_hpfst_score;';
+16021 +            put ' ';
+16023 +            put '  %if %sysfunc(exist(work._score_temp)) %then %do;';
+16024 +            put '     proc delete data=work._score_temp;';
+16025 +            put '     run;';
+16026 +            put '  %end;';
+16028 +            put ' ';
+16029 +            put '  %if %symexist(hpfst_score_input)=0 %then %let hpfst_score_input=&em_score_output;';
+16030 +            put '  %if %symexist(hpfst_score_output)=0 %then %let hpfst_score_output=&em_score_output;';
+16031 +            put ' ';
+16032 +            put '%let hpvvn= %sysfunc(getoption(VALIDVARNAME));';
+16033 +            put 'options validvarname=V7;';
+16035 +            put '  proc hp4score data=&hpfst_score_input(keep=';
+16036 +          end;
+16038 +          /* only keeps variables used as input */
+16039 +          put NAME;
+16041 +          if eof then do;
+16042 +            put " %EM_KEY ); ";
+16044 +            %if &EM_NUM_KEY  %then %do;
+16045 +              put "  ID %EM_KEY ;";
+16046 +            %end;
+16047 +            put '  %if %symexist(EM_USER_OUTMDLFILE)=0 %then %do;';
+16048 +            put '    score file="' @;
+16049 +            put "&EM_USER_OUTMDLFILE" @;
+16050 +            put '" out=work._outtemp;';
+16051 +            put '  %end;';
+16052 +            put '  %else %do;';
+16053 +            put '    score file="&EM_USER_OUTMDLFILE" out=work._outtemp;';
+16054 +            put '  %end;';
+16055 +            %if %length(&hpdm_performance)=0 %then %let hpdm_performance = PERFORMANCE;
+16056 +            put "    &hpdm_performance nthreads=1;";
+16057 +            put "  run;";
+16058 +            put " ";
+16059 +            put 'options validvarname=&hpvvn;';
+16060 +            put '  data work._score_temp;';
+16061 +            put '     merge &hpfst_score_input work._outtemp;';
+16062 +            put "  run;";
+16063 +            put " ";
+16064 +            put "  proc delete data=work._outtemp;";
+16065 +            put "  run;";
+16066 +            put " ";
+16067 +            put '  data &hpfst_score_output;';
+16068 +            put '    set work._score_temp;';
+16069 +            put '%mend;';
+16070 +            put ' ';
+16071 +            put '%symdel hpfst_score_input hpfst_score_output EM_USER_OUTMDLFILE/nowarn;';
+16072 +            put '%em_hpfst_score;';
+16073 +          end;
+16074 +        run;
+16076 +        /* need to have different flow and publish code - so no writing to work and merging */
+16077 +        data _null_;
+16078 +          file pubref;
+16080 +            put '%macro em_hpfst_score;';
+16081 +            put ' ';
+16083 +            put '  %if %symexist(hpfst_score_input)=0 %then %let hpfst_score_input=&em_score_output;';
+16084 +            put '  %if %symexist(hpfst_score_output)=0 %then %let hpfst_score_output=&em_score_output;';
+16085 +            put '  %if %symexist(hpfst_id_vars)=0 %then %let hpfst_id_vars = _ALL_;';
+16086 +            put ' ';
+16087 +            put '  %let hpvvn= %sysfunc(getoption(VALIDVARNAME));';
+16088 +            put '  options validvarname=V7;';
+16090 +            put '  proc hp4score data=&hpfst_score_input;';
+16092 +            put '  id &hpfst_id_vars;';
+16094 +            put '  %if %symexist(EM_USER_OUTMDLFILE)=0 %then %do;';
+16095 +            put '      %let hpfinEM=1;';
+16096 +            put '    score file="' @;
+16097 +            put "&EM_USER_OUTMDLFILE" @;
+16098 +            put '" out=&hpfst_score_output;';
+16099 +            put '  %end;';
+16100 +            put '  %else %do;';
+16101 +            put '      %let hpfinEM=0;';
+16102 +            put '      score file="&EM_USER_OUTMDLFILE" out=&hpfst_score_output;';
+16103 +            put '  %end;';
+16104 +            put "    &hpdm_performance;";
+16105 +            put "  run;";
+16106 +            put " ";
+16107 +            put '  options validvarname=&hpvvn;';
+16108 +            put " ";
+16109 +            put '  data &hpfst_score_output;';
+16110 +            put '     set &hpfst_score_output;';
+16111 +            put '     %if &hpfinEM %then %do;';
+16112 +            put '         %symdel hpfst_score_input hpfst_score_output  EM_USER_OUTMDLFILE  / nowarn; ';
+16113 +            put '     %end;';
+16114 +            put '%mend;';
+16115 +            put ' ';
+16116 +            put '%em_hpfst_score;';
+16117 +        run;
+16119 +        filename pubref;
+16120 +        filename flowref;
+16122 +        %if "&out" ne "" %then %do;
+16123 +          /* Create EMHPDMSCORE to Score in a grid environment */
+16124 +          %em_getname(key=EMHPDMSCORE, type=FILE, extension=sas);
+16125 +          filename _hpdmfrf "&em_user_emhpdmscore";
+16127 +          data _null_;
+16128 +             file _hpdmfrf;
+16129 +            put '%macro em_hpfst_score;';
+16130 +            put ' ';
+16132 +            put '  %if %symexist(hpfst_score_input)=0 %then %let hpfst_score_input=&em_score_output;';
+16133 +            put '  %if %symexist(hpfst_score_output)=0 %then %let hpfst_score_output=&em_score_output;';
+16134 +            put '  %if %symexist(hpfst_id_vars)=0 %then %let hpfst_id_vars = _ALL_;';
+16135 +            put ' ';
+16136 +            put '  %let hpvvn= %sysfunc(getoption(VALIDVARNAME));';
+16137 +            put '  options validvarname=V7;';
+16139 +            put '  proc hp4score data=&hpfst_score_input;';
+16141 +            put '  id &hpfst_id_vars;';
+16143 +            put '  %if %symexist(EM_USER_OUTMDLFILE)=0 %then %do;';
+16144 +            put '    score file="' @;
+16145 +            put "&EM_USER_OUTMDLFILE" @;
+16146 +            put '" out=&hpfst_score_output;';
+16147 +            put '  %end;';
+16148 +            put '  %else %do;';
+16149 +            put '    score file="&EM_USER_OUTMDLFILE" out=&hpfst_score_output;';
+16150 +            put '  %end;';
+16151 +            put "    &hpdm_performance;";
+16152 +            put "  run;";
+16153 +            put " ";
+16154 +            put '  options validvarname=&hpvvn;';
+16155 +            put " ";
+16156 +            put '%mend;';
+16157 +            put ' ';
+16158 +            put '%em_hpfst_score;';
+16159 +            put '%symdel hpfst_score_input hpfst_score_output EM_USER_OUTMDLFILE/nowarn;';
+16160 +          run;
+16162 +          filename _hpdmfrf;
+16164 +          %hpdm_node_assess(data=&out, DECMETA=&EM_DEC_DECMETA);
+16165 +          proc delete data=&out;
+16166 +          run;
+16168 +        %end;
+16170 +    %end; /* end MODELING */
+16172 +    /* Always have HPDMScore Empty not to break HPDM_DATAPREP macro */
+16173 +     %em_getname(key=HPDMSCORE, type=FILE, extension=sas);
+16174 +     filename _hpdmfrf "&em_user_hpdmscore";
+16175 +     data _null_;
+16176 +        file _hpdmfrf;
+16177 +        put ' ';
+16178 +     run;
+16179 +     filename _hpdmfrf;
+16181 +    %if &sysrc >4 %then %do;
+16182 +      %goto doendem;
+16183 +    %end;
+16185 +    %doendem:
+16187 +%Mend hpdm_Forest_Train;
+NOTE: %INCLUDE (level 1) ending.
+NOTE: Fileref TEMP has been deassigned.
+NOTE: %INCLUDE (level 1) file _HPFLOW is file SASHELP.EMUTIL.EM_PATHSCORECODE.SOURCE.
+16191 +%macro EM_PATHSCORECODE(NODEID=, STARTNODEID=, FLOW=, PUBLISH=, HPDM=, OUTPATH=);
+16192 +   proc display c=sashelp.emcore.pathscorecode.scl;
+16193 +   run;
+16194 +%mend EM_PATHSCORECODE;
+16195 +
+NOTE: %INCLUDE (level 1) ending.
+NOTE: Fileref _HPFLOW has been deassigned.
+Note: No data preparation was done because the table for this role is unavailable.
+Note: No data preparation was done because the table for this role does not exist.
+NOTE: PROCEDURE SQL used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31628.68k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     324
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+NOTE: %INCLUDE (level 1) file TEMP is file SASHELP.HPDM.HPDMFOREST_MACROS.SOURCE.
+16197 +%macro HPDM_HPFOREST(indata=,
+16198 +                   target=,
+16199 +                   targetOrder=,
+16200 +                   alpha=,
+16201 +                   catbins=,
+16202 +                   exhaustive=,
+16203 +                   leafsizemethod=,
+16204 +                   leaffraction=,
+16205 +                   leafsize=,
+16206 +                   maxdepth=,
+16207 +                   maxtrees=,
+16208 +                   mincatsize=,
+16209 +                   seed=,
+16210 +                   splitsize=,
+16211 +                   numobsmethod=,
+16212 +                   trainfraction=,
+16213 +                   trainn=,
+16214 +                   vars_to_try=,
+16215 +                   missing=,
+16216 +                   minuseinsearch=,
+16217 +                   out=,
+16218 +                   outbase=,
+16219 +                   outiter=,
+16220 +                   outimport=
+16221 +                   );
+16223 +    /* retrieve files */
+16224 +    %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+16226 +    data _null_;
+16227 +        length foreststate foresthpstore $2000;
+16228 +        foreststate   = "&EM_NODEDIR"!!"&em_dsep"!!"score.sasast";
+16229 +        foresthpstore = "&EM_NODEDIR"!!"&em_dsep"!!"score.sas";
+16230 +        call symput('FOREST_STATE', trim(foreststate));
+16231 +        call symput('FOREST_SCORE', trim(foresthpstore));
+16232 +    run;
+16234 +    /* run the HPForest procedure */
+16235 +    proc hpforest data=&indata
+16237 +    /* HPForest arguments */
+16238 +    %if &alpha ne %then %do;
+16239 +      alpha=&alpha
+16240 +    %end;
+16241 +    %if &catbins ne %then %do;
+16242 +      catbins=&catbins
+16243 +    %end;
+16244 +    %if &exhaustive ne %then %do;
+16245 +      exhaustive=&exhaustive
+16246 +    %end;
+16247 +    %if &leafsizemethod ne DEFAULT %then %do;
+16248 +      %if ((&leafsizemethod eq PERCENTAGE) and ("&leaffraction" ne ".")) %then %do;
+16249 +        leaffraction=&leaffraction
+16250 +      %end;
+16251 +      %else %if ((&leafsizemethod eq COUNT) and ("&leafsize" ne ".")) %then %do;
+16252 +        leafsize=&leafsize
+16253 +      %end;
+16254 +    %end;
+16255 +    %if &maxdepth ne %then %do;
+16256 +      maxdepth=&maxdepth
+16257 +    %end;
+16258 +    %if &maxtrees ne %then %do;
+16259 +      maxtrees=&maxtrees
+16260 +    %end;
+16261 +    %if &mincatsize ne %then %do;
+16262 +      mincatsize=&mincatsize
+16263 +    %end;
+16264 +    %if &missing ne %then %do;
+16265 +      missing=&missing
+16266 +      %if ((&missing eq USEINSEARCH) AND (&minuseinsearch ne )) %then %do;
+16267 +         minUseInSearch=&minuseinsearch
+16268 +      %end;
+16269 +    %end;
+16270 +    %if &seed ne %then %do;
+16271 +      seed=&seed
+16272 +    %end;
+16273 +    %if ((&splitsize ne) and ("&splitsize" ne ".")) %then %do;
+16274 +      splitsize=&splitsize
+16275 +    %end;
+16276 +    %if ((&numobsmethod eq PERCENTAGE) and ("&trainfraction" ne ".")) %then %do;
+16277 +      trainfraction = &trainfraction
+16278 +    %end;
+16279 +    %else %if ((&numobsmethod eq COUNT) and ("&trainn" ne ".")) %then %do;
+16280 +       trainn = &trainn
+16281 +    %end;
+16282 +    %if ((&vars_to_try ne ) and ("&vars_to_try" ne ".")) %then %do;
+16283 +       vars_to_try=&vars_to_try
+16284 +    %end;
+16285 +    %if %symexist(EM_HPFOREST_PROCSTMNT) %then %do;
+16286 +       &EM_HPFOREST_PROCSTMNT
+16287 +    %end;
+16288 +    ;
+16290 +    /* Input Statements */
+16291 +    %if %EM_INTERVAL_INPUT %EM_INTERVAL_REJECTED ne %then %do;
+16292 +      input %EM_INTERVAL_INPUT %EM_INTERVAL_REJECTED/ level = interval;
+16293 +    %end;
+16295 +    %if %EM_BINARY_INPUT %EM_NOMINAL_INPUT %EM_BINARY_REJECTED %EM_NOMINAL_REJECTED ne  %then %do;
+16296 +      input %EM_BINARY_INPUT %EM_BINARY_REJECTED %EM_NOMINAL_INPUT %EM_NOMINAL_REJECTED / level = nominal;
+16297 +    %end;
+16299 +    %if %EM_ORDINAL_INPUT %EM_ORDINAL_REJECTED ne %then %do;
+16300 +      input %EM_ORDINAL_INPUT %EM_ORDINAL_REJECTED / level = ordinal;
+16301 +    %end;
+16303 +    /* Target Statement */
+16304 +    * for the ordering of target levels;
+16305 +    * if not ASC, FMTASC, or FMTDESC then alway use DESC;
+16306 +    %if %EM_TARGET_LEVEL ne INTERVAL %then %do;
+16307 +       %if &targetOrder eq ASC %then %let torder = %str(order = ASCENDING);
+16308 +       %else %if &targetOrder eq FMTASC %then %let torder = %str(order = ASCFORMATTED);
+16309 +       %else %if &targetOrder eq FMTDESC %then %let torder = %str(order = DESFORMATTED);
+16310 +       %else %let torder = %str(order = DESCENDING);
+16311 +    %end;
+16312 +    %else %let torder=;
+16314 +    target &Target / level = %EM_TARGET_LEVEL &torder;
+16316 +    %if &EM_NUM_KEY  %then %do;
+16317 +       ID %EM_KEY ;
+16318 +    %end;
+16320 +    /* Partition variable */
+16321 +    %if ("&hpdm_partitionVar" ne "") %then %do;
+16322 +        partition rolevar=&hpdm_partitionVar(TRAIN='1' VALIDATE='0');
+16323 +    %end;
+16324 +    %else %if "&em_hpdm_train" ne "&indata" %then %do;
+16325 +       partition rolevar=_partInd_(TRAIN='1' VALIDATE='0');
+16326 +    %end;
+16328 +    /* freq variable */
+16329 +    %if %EM_FREQ ne %then %do;
+16330 +      freq %EM_FREQ;
+16331 +    %end;
+16333 +    /* output statements */
+16334 +    /*ods output nobs=&outnobs Baseline=&outbase FitStatistics=&outiter ModelInfo=&outmodelparms timing=&outtiming VariableImportance=&outimport; */
+16335 +    ods output Baseline=&outbase FitStatistics=&outiter VariableImportance=&outimport;
+16337 +    /* Score Statement - Need to use ASTORE below to score instead when partitionVar exists so don't have to include partitionVar as ID */
+16338 +    %if "&out" ne "" and "&EM_PROPERTY_MODELING" eq "Y" and "&hpdm_partitionVar" eq ""  %then %do;
+16339 +      score out=&out
+16340 +      %if %symexist(EM_HPFOREST_SCORESTMNT) %then %do;
+16341 +        &EM_HPFOREST_SCORESTMNT
+16342 +      %end;
+16343 +      ;
+16344 +    %end;
+16346 +    /* save statement */
+16347 +    %if "&EM_PROPERTY_MODELING" eq "Y" or ("&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" ne "LOSSREDUCTION") %then %do;
+16348 +        save file="&EM_USER_OUTMDLFILE"
+16349 +        %if %symexist(EM_HPFOREST_SAVESTMNT) %then %do;
+16350 +          &EM_HPFOREST_SAVESTMNT
+16351 +        %end;
+16352 +        ;
+16353 +    %end;
+16355 +    savestate file = "&FOREST_STATE";
+16356 +    /* Performance Statements */
+16357 +    &hpdm_performance
+16358 +      %if %symexist(EM_HPFOREST_PERFSTMNT) %then %do;
+16359 +         &EM_HPFOREST_PERFSTMNT
+16360 +      %end;
+16361 +    ;
+16362 +    run;
+16363 +    quit;
+16365 +    proc astore;
+16366 +        describe epcode="&FOREST_SCORE" store="&FOREST_STATE";
+16367 +        %if "&out" ne "" and "&EM_PROPERTY_MODELING" eq "Y" and "&hpdm_partitionVar" ne "" %then %do;
+16368 +            /* scoring for HPDM assessment in place of using SCORE OUT= */
+16369 +            score data=&indata store="&FOREST_STATE" copyvars=(&hpdm_partitionVar %em_key &Target) out=&out;
+16370 +        %end;
+16371 +    run;
+16373 +%mend HPDM_HPFOREST;
+NOTE: %INCLUDE (level 1) ending.
+NOTE: Fileref TEMP has been deassigned.
+ 
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31628.68k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     26
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: The HPFOREST procedure is executing in single-machine mode.
+NOTE: Savestate successful. File "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/score.sasast" has been written.
+NOTE: The SAVESTATE statement succeeded.
+NOTE: The number of threads actually used by PROC HPFOREST for parallel processing was 2.
+NOTE: The data set EMWS1.HPDMFOREST_VARIMPORT has 11 observations and 6 variables.
+NOTE: The data set EMWS1.HPDMFOREST_ITERATION has 71 observations and 8 variables.
+NOTE: The data set EMWS1.HPDMFOREST_BASELINE has 3 observations and 2 variables.
+NOTE: There were 816 observations read from the data set EMWS1.PART_TRAIN.
+NOTE: The PROCEDURE HPFOREST printed page 4.
+NOTE: PROCEDURE HPFOREST used (Total process time):
+      real time           0.11 seconds
+      user cpu time       0.07 seconds
+      system cpu time     0.04 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     1642
+      Page Swaps                        0
+      Voluntary Context Switches        3484
+      Involuntary Context Switches      13
+      Block Input Operations            0
+      Block Output Operations           1560
+ 
+ 
+NOTE: 1253 bytes written to the code file "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/score.sas"
+ 
+NOTE: The PROCEDURE ASTORE printed page 5.
+NOTE: PROCEDURE ASTORE used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     528
+      Page Swaps                        0
+      Voluntary Context Switches        17
+      Involuntary Context Switches      1
+      Block Input Operations            288
+      Block Output Operations           272
+ 
+ 
+ 
+NOTE: The data set WORK.EM_USER_MODEL has 1 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     91
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+WARNING: Apparent symbolic reference EM_SCORE_OUTPUT not resolved.
+WARNING: Apparent symbolic reference EM_SCORE_OUTPUT not resolved.
+ 
+NOTE: The file FLOWREF is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48
+ 
+NOTE: 48 records were written to the file FLOWREF.
+      The minimum record length was 1.
+      The maximum record length was 106.
+NOTE: There were 11 observations read from the data set EMWS1.HPDMFOREST_VARIABLESET.
+      WHERE ((ROLE='INPUT') and USE in ('D', 'Y')) or ((ROLE='REJECTED') and (USE='Y'));
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     65
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+ 
+NOTE: The file PUBREF is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMPUBLISHSCORE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48
+ 
+NOTE: 31 records were written to the file PUBREF.
+      The minimum record length was 1.
+      The maximum record length was 112.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     30
+      Page Swaps                        0
+      Voluntary Context Switches        8
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+NOTE: Fileref PUBREF has been deassigned.
+NOTE: Fileref FLOWREF has been deassigned.
+ 
+NOTE: The file _HPDMFRF is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/HPDMSCORE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48
+ 
+NOTE: 1 record was written to the file _HPDMFRF.
+      The minimum record length was 1.
+      The maximum record length was 1.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     27
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+NOTE: Fileref _HPDMFRF has been deassigned.
+16375
+16376  *------------------------------------------------------------*;
+16377  * End TRAIN: HPDMForest;
+16378  *------------------------------------------------------------*;
+ 
+16379  *------------------------------------------------------------*;
+16380  * Close any missing semi colons;
+16381  *------------------------------------------------------------*;
+16382  ;
+16383  ;
+16384  ;
+16385  ;
+16386  quit;
+16387  *------------------------------------------------------------*;
+16388  * Close any unbalanced quotes;
+16389  *------------------------------------------------------------*;
+16390  /*; *"; *'; */
+16391  ;
+16392  run;
+16393  quit;
+16394  /* Reset EM Options */
+16395  options formchar="|----|+|---+=|-/\<>*";
+16396  options nocenter ls=256 ps=10000;
+16397  goptions reset=all device=GIF NODISPLAY;
+ 
+*------------------------------------------------------------*
+* Score Log
+Date:                07 January 2024
+Time:                08:59:49
+*------------------------------------------------------------*
+16499  %let EMEXCEPTIONSTRING=;
+16500  *------------------------------------------------------------*;
+16501  * SCORE: HPDMForest;
+16502  *------------------------------------------------------------*;
+16503  %let EM_ACTION = SCORE;
+16504  %let syscc = 0;
+16505  %macro main;
+16506
+16507     %if %upcase(&EM_ACTION) = CREATE %then %do;
+16508         filename temp catalog 'sashelp.hpdm.hpdmforest_create.source';
+16509         %include temp;
+16510         filename temp;
+16511         %hpdm_Forest_create;
+16512     %end;
+16513     %else
+16514     %if %upcase(&EM_ACTION) = TRAIN %then %do;
+16515         filename temp catalog 'sashelp.hpdm.hpdmforest_train.source';
+16516         %include temp;
+16517         filename temp;
+16518         %hpdm_Forest_train;
+16519     %end;
+16520     %else
+16521     %if %upcase(&EM_ACTION) = SCORE %then %do;
+16522         %em_checkmacro(name=EM_PROPERTY_VARSELECT, value=Y, global=Y);
+16523         %em_checkmacro(name=EM_PROPERTY_VIMETHOD, value=LOSSREDUCTION);
+16524          %if "&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" = "RBA" %then %do;
+16525              %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+16526              %if %sysfunc(fileexist(&EM_USER_OUTMDLFILE))=0 %then %do;
+16527                  /* when the Variable Importance method has changed to RBA after running with Use as Modeling=No, need to re-train to create the outmdl file */
+16528                 filename temp catalog 'sashelp.hpdm.hpdmforest_train.source';
+16529                 %include temp;
+16530                 filename temp;
+16531                 %hpdm_Forest_train;
+16532              %end;
+16533          %end;
+16534          filename temp catalog 'sashelp.hpdm.hpdmforest_score.source';
+16535          %include temp;
+16536          filename temp;
+16537          %hpdm_Forest_score;
+16538     %end;
+16539     %else
+16540     %if %upcase(&EM_ACTION) = REPORT %then %do;
+16541         filename temp catalog 'sashelp.hpdm.hpdmforest_report.source';
+16542         %include temp;
+16543         filename temp;
+16544         %hpdm_Forest_report;
+16545     %end;
+16546     %else
+16547
+16548  %mend main;
+16549
+16550  %main;
+NOTE: %INCLUDE (level 1) file TEMP is file SASHELP.HPDM.HPDMFOREST_SCORE.SOURCE.
+16551 +%Macro hpdm_Forest_score;
+16553 +   filename _cdt "&EM_FILE_CDELTA_TRAIN";
+16554 +   data _null_;
+16555 +     file _cdt;
+16556 +     put ' ';
+16557 +   run;
+16558 +   filename _cdt;
+16560 +   %em_checkmacro(name=EM_PROPERTY_VARSELECT, value=Y, global=Y);
+16561 +   %em_checkmacro(name=EM_PROPERTY_VIMETHOD, value=LOSSREDUCTION);
+16562 +   %em_checkmacro(name=EM_PROPERTY_RBATOPNUM, value=25);
+16563 +   %em_checkmacro(name=EM_PROPERTY_RBACUT, value=0.01);
+16565 +   /* variable selection */
+16566 +   %if "&EM_PROPERTY_VARSELECT" eq "Y" %then %do;
+16568 +      %if &em_num_interval_Target %then %let rbameasure = AAE;
+16569 +      %else %let rbameasure = Margin;
+16571 +      %EM_GETNAME(key=VARIMPORT);
+16573 +      %let measure=;
+16574 +      %let dsid = %sysfunc(open(&EM_USER_VARIMPORT));
+16575 +      %if "%EM_TARGET_LEVEL" eq "INTERVAL" %then %do;
+16576 +         %let mnum = %sysfunc(varnum(&dsid, AAEValid));
+16577 +         %if &mnum %then %let measure = AAEValid;
+16578 +         %else %do;
+16579 +            %let mnum = %sysfunc(varnum(&dsid, AAEOOB));
+16580 +            %if &mnum %then %let measure = AAEOOB;
+16581 +         %end;
+16582 +      %end;
+16583 +      %else %do;
+16584 +         %let mnum = %sysfunc(varnum(&dsid, MarginValid));
+16585 +         %if &mnum %then %let measure = MarginValid;
+16586 +         %else %do;
+16587 +            %let mnum = %sysfunc(varnum(&dsid, MARGINOOB));
+16588 +            %if &mnum %then %let measure = MARGINOOB;
+16589 +         %end;
+16590 +      %end;
+16591 +      %if &dsid %then %let dsid=%sysfunc(close(&dsid));
+16593 +      %if %length(&measure) %then %do;
+16594 +         /* loss reduction */
+16595 +         %if "&EM_PROPERTY_VIMETHOD" = "LOSSREDUCTION" %then %do;
+16597 +            %let dsid = %sysfunc(open(&EM_USER_VARIMPORT(where=(&measure le 0))));
+16598 +            %let varnum = %sysfunc(varnum(&dsid, variable));
+16599 +            /* check for RBA columns from previous run */
+16600 +            %let rbavarnum = %sysfunc(varnum(&dsid,MSERBA));
+16601 +            %let obs = %sysfunc(fetch(&dsid));
+16602 +            %do %while(&obs=0);
+16603 +               %let temp = %nrbquote(%sysfunc(getvarc(&dsid, &varnum)));
+16604 +               %let varname = %nrbquote(%sysfunc(tranwrd(&temp,  %str(%"),"")));
+16605 +               %EM_METACHANGE(name=&varname, role=REJECTED);
+16606 +               %let obs = %sysfunc(fetch(&dsid));
+16607 +            %end;
+16608 +            %if &dsid %then %let dsid=%sysfunc(close(&dsid));
+16610 +            %if &rbavarnum %then %do;
+16611 +               data &EM_USER_VARIMPORT;
+16612 +                  set &EM_USER_VARIMPORT;
+16613 +                  drop mserba &rbameasure.rba label;
+16614 +               run;
+16615 +            %end;
+16617 +         %end;
+16619 +         %else %do;/* RBA */
+16620 +            /*
+16621 +               reject the variables that didn't make cut for hp4score - do this even if less inputs than RBATOPNUM
+16622 +               to get them in importance order
+16623 +            */
+16624 +            proc sort data=&EM_USER_VARIMPORT out=VARIMP;
+16625 +               by descending &measure;
+16626 +            run;
+16628 +            data varimp;
+16629 +               set varimp(obs=&EM_PROPERTY_RBATOPNUM);
+16630 +            run;
+16632 +            %em_varmacro(name=em_rba_input, metadata=VARIMP, key=variable);
+16634 +            %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+16636 +            %if %symexist(em_hpdm_train)=0 %then %do;
+16637 +               %hpdm_dataprep(data=, out=, metadata=_exportMeta, code=, ROLE=TRAIN, append=Y);
+16638 +            %end;
+16640 +            %let validflag = 0;
+16641 +            %if "&em_hpdm_train" eq "&em_import_data" %then %do;
+16642 +               /* data not on grid - use validation data if available */
+16643 +               %if ("&EM_IMPORT_VALIDATE" ne "") and (%sysfunc(exist(&em_import_validate)) or %sysfunc(exist(&em_import_validate, VIEW))) %then %do;
+16644 +                  %let data_rba = &em_import_validate;
+16645 +                  %let validflag = 1;
+16646 +               %end;
+16647 +               %else %let data_rba = &em_import_data;
+16648 +            %end;
+16649 +            %else %let data_rba = &em_hpdm_train;
+16651 +            ods output VariableImportance=work.VIRBA;
+16652 +            proc hp4score data=&data_rba;
+16653 +                /* Use validation data when partitionVar exists on grid */
+16654 +                %if "&em_hpdm_train" ne "&em_import_data" and "&hpdm_partitionVar" ne "" %then %do;
+16655 +                    where &hpdm_partitionVar=0;
+16656 +                    %let validflag = 1;
+16657 +                %end;
+16658 +               importance file="&EM_USER_OUTMDLFILE" vars=(%em_rba_input) maxdepth=6 %if &validflag %then role=VALID;;
+16659 +               %if %symexist(EM_HPFOREST_RBANTHREADS1) %then %do;
+16660 +                  %if %qupcase(&EM_HPFOREST_RBANTHREADS1)=%str(Y) %then %do;
+16661 +                     performance nthreads=1;
+16662 +                  %end;
+16663 +                  %else %do;
+16664 +                     &hpdm_performance;
+16665 +                  %end;
+16666 +               %end;
+16667 +               %else %do;
+16668 +                  &hpdm_performance;
+16669 +               %end;
+16670 +            run;
+16672 +            %if %sysfunc(exist(VIRBA)) %then %do;
+16674 +               /* merge with other var imp table so all measures in a single table for results */
+16675 +               /* need to have drop in case they are in there from previous run */
+16676 +               proc sort data=&EM_USER_VARIMPORT out=vi1(drop=&rbameasure.rba mserba label);
+16677 +                  by variable;
+16678 +               run;
+16680 +               proc sort data=virba;
+16681 +                  by variable;
+16682 +               run;
+16684 +               data &EM_USER_VARIMPORT;
+16685 +                  merge vi1 virba(rename=(&rbameasure=&rbameasure.RBA mse=MSERBA));
+16686 +                  by variable;
+16687 +               run;
+16689 +               proc sql noprint;
+16690 +                 select max(&rbameasure) format=best12. into :rbamax trimmed from virba;
+16691 +               quit;
+16693 +               %let minvi = %sysevalf(&rbamax * &EM_PROPERTY_RBACUT);
+16694 +               %put max of &rbameasure is &rbamax;
+16696 +               filename dlttemp "&EM_FILE_CDELTA_TRAIN";
+16698 +                data _null_;
+16699 +                   length varname $64 string $200 ;
+16700 +                   file dlttemp;
+16701 +                   set &EM_USER_VARIMPORT;
+16702 +                   if &rbameasure.RBA < &minvi then do;
+16703 +                       varname = tranwrd(variable, '"', '""');
+16704 +                       string = 'if upcase(name) eq "'!!upcase(trim(varname))!!'"'!!' then ROLE="REJECTED";';
+16705 +                       put string;
+16706 +                   end;
+16707 +                run;
+16709 +                filename dlttemp;
+16710 +            %end;
+16712 +         %end; /* end RBA */
+16714 +      %end;
+16716 +   %end;
+16718 +%Mend hpdm_Forest_score;
+NOTE: %INCLUDE (level 1) ending.
+NOTE: Fileref TEMP has been deassigned.
+ 
+NOTE: The file _CDT is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/CDELTA_TRAIN.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48
+ 
+NOTE: 1 record was written to the file _CDT.
+      The minimum record length was 1.
+      The maximum record length was 1.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     28
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+NOTE: Fileref _CDT has been deassigned.
+ 
+NOTE: The data set WORK.EM_METACHANGE has 1 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     95
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 1 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 2 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     132
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 2 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 3 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     131
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 3 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 4 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     130
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 4 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 5 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     130
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 5 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 6 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     130
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      13
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 6 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 7 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     130
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      3
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+16723
+16724  *------------------------------------------------------------*;
+16725  * End SCORE: HPDMForest;
+16726  *------------------------------------------------------------*;
+ 
+16727  proc sort data=WORK.EM_METACHANGE;
+16728  by key uname;
+16729  run;
+ 
+NOTE: There were 7 observations read from the data set WORK.EM_METACHANGE.
+NOTE: The data set WORK.EM_METACHANGE has 7 observations and 9 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+16730  filename x "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/CDELTA_TRAIN.sas";
+16731  data _null_;
+16732  file x;
+16733  put 'if upcase(NAME) = "CITY" then do;';
+16734  put 'ROLE = "REJECTED";';
+16735  put 'end;';
+16736  put 'else ';
+16737  put 'if upcase(NAME) = "DAYS_SINCE_LAST_PURCHASE" then do;';
+16738  put 'ROLE = "REJECTED";';
+16739  put 'end;';
+16740  put 'else ';
+16741  put 'if upcase(NAME) = "DISCOUNT_APPLIED_BINARY" then do;';
+16742  put 'ROLE = "REJECTED";';
+16743  put 'end;';
+16744  put 'else ';
+16745  put 'if upcase(NAME) = "IMP_SATISFACTION_LEVEL" then do;';
+16746  put 'ROLE = "REJECTED";';
+16747  put 'end;';
+16748  put 'else ';
+16749  put 'if upcase(NAME) = "LOG_ITEMS_PURCHASED" then do;';
+16750  put 'ROLE = "REJECTED";';
+16751  put 'end;';
+16752  put 'else ';
+16753  put 'if upcase(NAME) = "MEMBERSHIP_TYPE" then do;';
+16754  put 'ROLE = "REJECTED";';
+16755  put 'end;';
+16756  put 'else ';
+16757  put 'if upcase(NAME) = "TOTAL_SPEND" then do;';
+16758  put 'ROLE = "REJECTED";';
+16759  put 'end;';
+16760  run;
+ 
+NOTE: The file X is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/CDELTA_TRAIN.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48
+ 
+NOTE: 27 records were written to the file X.
+      The minimum record length was 4.
+      The maximum record length was 53.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     40
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+16761  filename x;
+NOTE: Fileref X has been deassigned.
+ 
+16762  filename _emscr "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas";
+16763  %let em_score_output = _ScoreTrain;
+16764  data _ScoreTrain;
+16765  set EMWS1.Part_TRAIN;
+16766  run;
+ 
+NOTE: There were 816 observations read from the data set EMWS1.PART_TRAIN.
+NOTE: The data set WORK._SCORETRAIN has 816 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     98
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+16767  %inc _emscr;
+NOTE: %INCLUDE (level 1) file _EMSCR is file /home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas.
+16768 +%macro em_hpfst_score;
+16769 +
+16770 +  %if %sysfunc(exist(work._score_temp)) %then %do;
+16771 +     proc delete data=work._score_temp;
+16772 +     run;
+16773 +  %end;
+16774 +
+16775 +  %if %symexist(hpfst_score_input)=0 %then %let hpfst_score_input=&em_score_output;
+16776 +  %if %symexist(hpfst_score_output)=0 %then %let hpfst_score_output=&em_score_output;
+16777 +
+16778 +%let hpvvn= %sysfunc(getoption(VALIDVARNAME));
+16779 +options validvarname=V7;
+16780 +  proc hp4score data=&hpfst_score_input(keep=
+16781 +Average_Rating
+16782 +City
+16783 +Days_Since_Last_Purchase
+16784 +Discount_Applied_Binary
+16785 +FavoriteCategory
+16786 +Gender_Binary
+16787 +IMP_Satisfaction_Level
+16788 +LOG_IMP_Age
+16789 +LOG_Items_Purchased
+16790 +Membership_Type
+16791 +Total_Spend
+16792 +  );
+16793 +  %if %symexist(EM_USER_OUTMDLFILE)=0 %then %do;
+16794 +    score file="/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/OUTMDLFILE.bin" out=work._outtemp;
+16795 +  %end;
+16796 +  %else %do;
+16797 +    score file="&EM_USER_OUTMDLFILE" out=work._outtemp;
+16798 +  %end;
+16799 +    PERFORMANCE nthreads=1;
+16800 +  run;
+16801 +
+16802 +options validvarname=&hpvvn;
+16803 +  data work._score_temp;
+16804 +     merge &hpfst_score_input work._outtemp;
+16805 +  run;
+16806 +
+16807 +  proc delete data=work._outtemp;
+16808 +  run;
+16809 +
+16810 +  data &hpfst_score_output;
+16811 +    set work._score_temp;
+16812 +%mend;
+16813 +
+16814 +%symdel hpfst_score_input hpfst_score_output EM_USER_OUTMDLFILE/nowarn;
+16815 +%em_hpfst_score;
+ 
+NOTE: The HP4SCORE procedure is executing in single-machine mode.
+NOTE: There were 816 observations read from the data set WORK._SCORETRAIN.
+NOTE: The data set WORK._OUTTEMP has 816 observations and 4 variables.
+NOTE: The PROCEDURE HP4SCORE printed page 6.
+NOTE: PROCEDURE HP4SCORE used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     477
+      Page Swaps                        0
+      Voluntary Context Switches        16
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 816 observations read from the data set WORK._SCORETRAIN.
+NOTE: There were 816 observations read from the data set WORK._OUTTEMP.
+NOTE: The data set WORK._SCORE_TEMP has 816 observations and 24 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     134
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      4
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+ 
+NOTE: Deleting WORK._OUTTEMP (memtype=DATA).
+NOTE: PROCEDURE DELETE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     21
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+NOTE: %INCLUDE (level 1) ending.
+16816  run;
+ 
+NOTE: There were 816 observations read from the data set WORK._SCORE_TEMP.
+NOTE: The data set WORK._SCORETRAIN has 816 observations and 24 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     99
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+16817  filename _emscr;
+NOTE: Fileref _EMSCR has been deassigned.
+ 
+16818  data _null_;
+16819  set EMWS1.HPDMForest_Churn_DM;
+16820  where _TYPE_ in('MATRIX', 'DECPRIOR');
+16821  select(_TYPE_);
+16822  when('MATRIX') call symput('useDec', strip(use));
+16823  when('DECPRIOR') call symput('usePrior', strip(use));
+16824  otherwise;
+16825  end;
+16826  run;
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_ in ('DECPRIOR', 'MATRIX');
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     62
+      Page Swaps                        0
+      Voluntary Context Switches        2
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+16827  filename _emscr "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas" MOD;
+16828  %makeClassificationVars(target=Churn, data=_ScoreTrain, decmeta=EMWS1.HPDMForest_Churn_DM, intoVar=Y, publish=N, fref=_emscr);
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_='PREDICTED';
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     66
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_ in ('FROM', 'INTO');
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              31668.93k
+      OS Memory           43636.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     61
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: There were 0 observations read from the data set SASHELP.VFORMAT.
+      WHERE UPCASE(fmtname)='BEST12';
+NOTE: DATA statement used (Total process time):
+      real time           0.06 seconds
+      user cpu time       0.03 seconds
+      system cpu time     0.01 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       24
+      Page Reclaims                     2106
+      Page Swaps                        0
+      Voluntary Context Switches        24
+      Involuntary Context Switches      4
+      Block Input Operations            2896
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: The file _EMSCR is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48,
+      File Size (bytes)=1196
+ 
+NOTE: 29 records were written to the file _EMSCR.
+      The minimum record length was 4.
+      The maximum record length was 63.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     38
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+16829  filename _emscr;
+NOTE: Fileref _EMSCR has been deassigned.
+ 
+16830  filename _emscr "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/POSTEPSCORECODE.sas" MOD;
+16831  %makeClassificationVars(target=Churn, data=_ScoreTrain, decmeta=EMWS1.HPDMForest_Churn_DM, intoVar=Y, publish=Y, fref=_emscr);
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_='PREDICTED';
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     61
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_ in ('FROM', 'INTO');
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     68
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: There were 0 observations read from the data set SASHELP.VFORMAT.
+      WHERE UPCASE(fmtname)='BEST12';
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.02 seconds
+      system cpu time     0.01 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     1931
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: The file _EMSCR is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/POSTEPSCORECODE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48,
+      File Size (bytes)=0
+ 
+NOTE: 25 records were written to the file _EMSCR.
+      The minimum record length was 4.
+      The maximum record length was 63.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     31
+      Page Swaps                        0
+      Voluntary Context Switches        3
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+16832  filename _emscr;
+NOTE: Fileref _EMSCR has been deassigned.
+ 
+16833  filename _f1 "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/POSTEPSCORECODE.sas";
+16834  filename _f2 "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMPUBLISHSCORE.sas";
+16835  %em_copyfile(infref=_f1, outfref=_f2, append=Y);
+ 
+NOTE: The file _F2 is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMPUBLISHSCORE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48,
+      File Size (bytes)=970
+ 
+NOTE: 25 records were written to the file _F2.
+      The minimum record length was 4.
+      The maximum record length was 63.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     33
+      Page Swaps                        0
+      Voluntary Context Switches        8
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+16836  filename _f1;
+NOTE: Fileref _F1 has been deassigned.
+16837  filename _f2;
+NOTE: Fileref _F2 has been deassigned.
+ 
+16838  filename _emscr "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas" MOD;
+16839  %makeResidualVars(target=Churn, decmeta=EMWS1.HPDMForest_Churn_DM, fref=_emscr);
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_ in ('FROM', 'TARGET');
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     60
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_='PREDICTED';
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     63
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_CHURN_DM.
+      WHERE _TYPE_='RESIDUAL';
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     69
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: The file _EMSCR is:
+      Filename=/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas,
+      Owner Name=u63437975,Group Name=oda,
+      Access Permission=-rw-r--r--,
+      Last Modified=07 January 2024 08:59:48,
+      File Size (bytes)=1913
+ 
+NOTE: 23 records were written to the file _EMSCR.
+      The minimum record length was 3.
+      The maximum record length was 63.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     29
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+16840  filename _emscr;
+NOTE: Fileref _EMSCR has been deassigned.
+ 
+16841  filename emflow "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas";
+16842  *------------------------------------------------------------*;
+16843  * HPDMForest: Scoring DATA data;
+16844  *------------------------------------------------------------*;
+16845  %let em_score_output = EMWS1.HPDMForest_TRAIN;
+16846  data EMWS1.HPDMForest_TRAIN;
+16847  set EMWS1.Part_TRAIN
+16848  ;
+16849  %inc emflow;
+NOTE: %INCLUDE (level 1) file EMFLOW is file /home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas.
+16850 +%macro em_hpfst_score;
+16851 +
+16852 +  %if %sysfunc(exist(work._score_temp)) %then %do;
+16853 +     proc delete data=work._score_temp;
+16854 +     run;
+16855 +  %end;
+16856 +
+16857 +  %if %symexist(hpfst_score_input)=0 %then %let hpfst_score_input=&em_score_output;
+16858 +  %if %symexist(hpfst_score_output)=0 %then %let hpfst_score_output=&em_score_output;
+16859 +
+16860 +%let hpvvn= %sysfunc(getoption(VALIDVARNAME));
+16861 +options validvarname=V7;
+16862 +  proc hp4score data=&hpfst_score_input(keep=
+16863 +Average_Rating
+16864 +City
+16865 +Days_Since_Last_Purchase
+16866 +Discount_Applied_Binary
+16867 +FavoriteCategory
+16868 +Gender_Binary
+16869 +IMP_Satisfaction_Level
+16870 +LOG_IMP_Age
+16871 +LOG_Items_Purchased
+16872 +Membership_Type
+16873 +Total_Spend
+16874 +  );
+16875 +  %if %symexist(EM_USER_OUTMDLFILE)=0 %then %do;
+16876 +    score file="/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/OUTMDLFILE.bin" out=work._outtemp;
+16877 +  %end;
+16878 +  %else %do;
+16879 +    score file="&EM_USER_OUTMDLFILE" out=work._outtemp;
+16880 +  %end;
+16881 +    PERFORMANCE nthreads=1;
+16882 +  run;
+16883 +
+16884 +options validvarname=&hpvvn;
+16885 +  data work._score_temp;
+16886 +     merge &hpfst_score_input work._outtemp;
+16887 +  run;
+16888 +
+16889 +  proc delete data=work._outtemp;
+16890 +  run;
+16891 +
+16892 +  data &hpfst_score_output;
+16893 +    set work._score_temp;
+16894 +%mend;
+16895 +
+16896 +%symdel hpfst_score_input hpfst_score_output EM_USER_OUTMDLFILE/nowarn;
+16897 +%em_hpfst_score;
+ 
+NOTE: There were 816 observations read from the data set EMWS1.PART_TRAIN.
+NOTE: The data set EMWS1.HPDMFOREST_TRAIN has 816 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     228
+      Page Swaps                        0
+      Voluntary Context Switches        20
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+ 
+NOTE: Deleting WORK._SCORE_TEMP (memtype=DATA).
+NOTE: PROCEDURE DELETE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:48 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     15
+      Page Swaps                        0
+      Voluntary Context Switches        1
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: The HP4SCORE procedure is executing in single-machine mode.
+NOTE: There were 816 observations read from the data set EMWS1.HPDMFOREST_TRAIN.
+NOTE: The data set WORK._OUTTEMP has 816 observations and 4 variables.
+NOTE: The PROCEDURE HP4SCORE printed page 7.
+NOTE: PROCEDURE HP4SCORE used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     458
+      Page Swaps                        0
+      Voluntary Context Switches        22
+      Involuntary Context Switches      0
+      Block Input Operations            544
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 816 observations read from the data set EMWS1.HPDMFOREST_TRAIN.
+NOTE: There were 816 observations read from the data set WORK._OUTTEMP.
+NOTE: The data set WORK._SCORE_TEMP has 816 observations and 24 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     136
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+ 
+NOTE: Deleting WORK._OUTTEMP (memtype=DATA).
+NOTE: PROCEDURE DELETE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     15
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+16898 +*------------------------------------------------------------*;
+16899 +*Computing Classification Vars: Churn;
+16900 +*------------------------------------------------------------*;
+16901 +length _format200 $200;
+16902 +drop _format200;
+16903 +length F_Churn $12;
+16904 +label  F_Churn = 'From: Churn';
+16905 +_format200= PUT( Churn, BEST12. );
+16906 +F_Churn=dmnorm(_format200,32); ;
+16907 +_format200= ' ' ;
+16908 +length _p_ 8;
+16909 +_p_= 0 ;
+16910 +drop _p_ ;
+16911 +if P_Churn1 - _p_ > 1E-8 then do ;
+16912 +   _p_= P_Churn1 ;
+16913 +   _format200='1';
+16914 +end;
+16915 +if P_Churn0 - _p_ > 1E-8 then do ;
+16916 +   _p_= P_Churn0 ;
+16917 +   _format200='0';
+16918 +end;
+16919 +I_Churn=dmnorm(_format200,32); ;
+16920 +length U_Churn 8;
+16921 +label U_Churn = 'Unnormalized Into: Churn';
+16922 +format U_Churn BEST12.;
+16923 +if I_Churn='1' then
+16924 +U_Churn=1;
+16925 +if I_Churn='0' then
+16926 +U_Churn=0;
+16927 +*------------------------------------------------------------*;
+16928 +*Computing Residual Vars: Churn;
+16929 +*------------------------------------------------------------*;
+16930 +Length R_Churn1 8;
+16931 +Label R_Churn1='Residual: Churn=1';
+16932 +Length R_Churn0 8;
+16933 +Label R_Churn0='Residual: Churn=0';
+16934 +if
+16935 + F_Churn ne '1'
+16936 +and F_Churn ne '0'
+16937 + then do;
+16938 +R_Churn1=.;
+16939 +R_Churn0=.;
+16940 +end;
+16941 +else do;
+16942 +R_Churn1= - P_Churn1;
+16943 +R_Churn0= - P_Churn0;
+16944 +select(F_Churn);
+16945 +when('1')R_Churn1= R_Churn1+1;
+16946 +when('0')R_Churn0= R_Churn0+1;
+16947 +otherwise;
+16948 +end;
+16949 +end;
+NOTE: %INCLUDE (level 1) ending.
+16950  run;
+ 
+NOTE: There were 816 observations read from the data set WORK._SCORE_TEMP.
+NOTE: The data set EMWS1.HPDMFOREST_TRAIN has 816 observations and 28 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.01 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     113
+      Page Swaps                        0
+      Voluntary Context Switches        26
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+16951  quit;
+ 
+16952  filename emflow "/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas";
+16953  *------------------------------------------------------------*;
+16954  * HPDMForest: Scoring TEST data;
+16955  *------------------------------------------------------------*;
+16956  %let em_score_output = EMWS1.HPDMForest_TEST;
+16957  data EMWS1.HPDMForest_TEST;
+16958  set EMWS1.Part_TEST
+16959  ;
+16960  %inc emflow;
+NOTE: %INCLUDE (level 1) file EMFLOW is file /home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/EMFLOWSCORE.sas.
+16961 +%macro em_hpfst_score;
+16962 +
+16963 +  %if %sysfunc(exist(work._score_temp)) %then %do;
+16964 +     proc delete data=work._score_temp;
+16965 +     run;
+16966 +  %end;
+16967 +
+16968 +  %if %symexist(hpfst_score_input)=0 %then %let hpfst_score_input=&em_score_output;
+16969 +  %if %symexist(hpfst_score_output)=0 %then %let hpfst_score_output=&em_score_output;
+16970 +
+16971 +%let hpvvn= %sysfunc(getoption(VALIDVARNAME));
+16972 +options validvarname=V7;
+16973 +  proc hp4score data=&hpfst_score_input(keep=
+16974 +Average_Rating
+16975 +City
+16976 +Days_Since_Last_Purchase
+16977 +Discount_Applied_Binary
+16978 +FavoriteCategory
+16979 +Gender_Binary
+16980 +IMP_Satisfaction_Level
+16981 +LOG_IMP_Age
+16982 +LOG_Items_Purchased
+16983 +Membership_Type
+16984 +Total_Spend
+16985 +  );
+16986 +  %if %symexist(EM_USER_OUTMDLFILE)=0 %then %do;
+16987 +    score file="/home/u63437975/WQD7005_AA1/Workspaces/EMWS1/HPDMForest/OUTMDLFILE.bin" out=work._outtemp;
+16988 +  %end;
+16989 +  %else %do;
+16990 +    score file="&EM_USER_OUTMDLFILE" out=work._outtemp;
+16991 +  %end;
+16992 +    PERFORMANCE nthreads=1;
+16993 +  run;
+16994 +
+16995 +options validvarname=&hpvvn;
+16996 +  data work._score_temp;
+16997 +     merge &hpfst_score_input work._outtemp;
+16998 +  run;
+16999 +
+17000 +  proc delete data=work._outtemp;
+17001 +  run;
+17002 +
+17003 +  data &hpfst_score_output;
+17004 +    set work._score_temp;
+17005 +%mend;
+17006 +
+17007 +%symdel hpfst_score_input hpfst_score_output EM_USER_OUTMDLFILE/nowarn;
+17008 +%em_hpfst_score;
+ 
+NOTE: There were 204 observations read from the data set EMWS1.PART_TEST.
+NOTE: The data set EMWS1.HPDMFOREST_TEST has 204 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     247
+      Page Swaps                        0
+      Voluntary Context Switches        22
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: Deleting WORK._SCORE_TEMP (memtype=DATA).
+NOTE: PROCEDURE DELETE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     15
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: The HP4SCORE procedure is executing in single-machine mode.
+NOTE: There were 204 observations read from the data set EMWS1.HPDMFOREST_TEST.
+NOTE: The data set WORK._OUTTEMP has 204 observations and 4 variables.
+NOTE: The PROCEDURE HP4SCORE printed page 8.
+NOTE: PROCEDURE HP4SCORE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     417
+      Page Swaps                        0
+      Voluntary Context Switches        18
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 204 observations read from the data set EMWS1.HPDMFOREST_TEST.
+NOTE: There were 204 observations read from the data set WORK._OUTTEMP.
+NOTE: The data set WORK._SCORE_TEMP has 204 observations and 24 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     157
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: Deleting WORK._OUTTEMP (memtype=DATA).
+NOTE: PROCEDURE DELETE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     15
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+17009 +*------------------------------------------------------------*;
+17010 +*Computing Classification Vars: Churn;
+17011 +*------------------------------------------------------------*;
+17012 +length _format200 $200;
+17013 +drop _format200;
+17014 +length F_Churn $12;
+17015 +label  F_Churn = 'From: Churn';
+17016 +_format200= PUT( Churn, BEST12. );
+17017 +F_Churn=dmnorm(_format200,32); ;
+17018 +_format200= ' ' ;
+17019 +length _p_ 8;
+17020 +_p_= 0 ;
+17021 +drop _p_ ;
+17022 +if P_Churn1 - _p_ > 1E-8 then do ;
+17023 +   _p_= P_Churn1 ;
+17024 +   _format200='1';
+17025 +end;
+17026 +if P_Churn0 - _p_ > 1E-8 then do ;
+17027 +   _p_= P_Churn0 ;
+17028 +   _format200='0';
+17029 +end;
+17030 +I_Churn=dmnorm(_format200,32); ;
+17031 +length U_Churn 8;
+17032 +label U_Churn = 'Unnormalized Into: Churn';
+17033 +format U_Churn BEST12.;
+17034 +if I_Churn='1' then
+17035 +U_Churn=1;
+17036 +if I_Churn='0' then
+17037 +U_Churn=0;
+17038 +*------------------------------------------------------------*;
+17039 +*Computing Residual Vars: Churn;
+17040 +*------------------------------------------------------------*;
+17041 +Length R_Churn1 8;
+17042 +Label R_Churn1='Residual: Churn=1';
+17043 +Length R_Churn0 8;
+17044 +Label R_Churn0='Residual: Churn=0';
+17045 +if
+17046 + F_Churn ne '1'
+17047 +and F_Churn ne '0'
+17048 + then do;
+17049 +R_Churn1=.;
+17050 +R_Churn0=.;
+17051 +end;
+17052 +else do;
+17053 +R_Churn1= - P_Churn1;
+17054 +R_Churn0= - P_Churn0;
+17055 +select(F_Churn);
+17056 +when('1')R_Churn1= R_Churn1+1;
+17057 +when('0')R_Churn0= R_Churn0+1;
+17058 +otherwise;
+17059 +end;
+17060 +end;
+NOTE: %INCLUDE (level 1) ending.
+17061  run;
+ 
+NOTE: There were 204 observations read from the data set WORK._SCORE_TEMP.
+NOTE: The data set EMWS1.HPDMFOREST_TEST has 204 observations and 28 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     120
+      Page Swaps                        0
+      Voluntary Context Switches        25
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+17062  quit;
+ 
+17123  proc append base=EMWS1.HPDMForest_EMOUTFIT data=WORK.OUTFITDATA force;
+17124  run;
+ 
+NOTE: Appending WORK.OUTFITDATA to EMWS1.HPDMFOREST_EMOUTFIT.
+NOTE: BASE data set does not exist. DATA file is being copied to BASE file.
+NOTE: There were 1 observations read from the data set WORK.OUTFITDATA.
+NOTE: The data set EMWS1.HPDMFOREST_EMOUTFIT has 1 observations and 19 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              32924.37k
+      OS Memory           44404.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     153
+      Page Swaps                        0
+      Voluntary Context Switches        21
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+ 
+ 
+17125  *------------------------------------------------------------*;
+17126  * HPDMForest: Computing metadata for TRAIN data;
+17127  *------------------------------------------------------------*;
+ 
+17515  data WORK.MODELTEMP_INFO;
+17516  set EMWS1.HPDMForest_EMINFO;
+17517  where DATA='HPDMForest' and KEY ^in('DECDATA', 'DECMETA', 'IMPORTANCE', 'MODEL');
+17518  run;
+ 
+NOTE: There were 0 observations read from the data set EMWS1.HPDMFOREST_EMINFO.
+      WHERE (DATA='HPDMForest') and KEY not in ('DECDATA', 'DECMETA', 'IMPORTANCE', 'MODEL');
+NOTE: The data set WORK.MODELTEMP_INFO has 0 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     127
+      Page Swaps                        0
+      Voluntary Context Switches        2
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+17519  data EMWS1.HPDMForest_EMINFO;
+17520  length TARGET KEY $32 DATA $43;
+17521  input TARGET KEY DATA $;
+17522  cards;
+ 
+NOTE: The data set EMWS1.HPDMFOREST_EMINFO has 3 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     101
+      Page Swaps                        0
+      Voluntary Context Switches        14
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+17526  run;
+17527  data EMWS1.HPDMForest_EMINFO;
+17528  set EMWS1.HPDMForest_EMINFO WORK.MODELTEMP_INFO;
+17529  run;
+ 
+NOTE: There were 3 observations read from the data set EMWS1.HPDMFOREST_EMINFO.
+NOTE: There were 0 observations read from the data set WORK.MODELTEMP_INFO.
+NOTE: The data set EMWS1.HPDMFOREST_EMINFO has 3 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     166
+      Page Swaps                        0
+      Voluntary Context Switches        38
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+17530  proc sort data = EMWS1.HPDMForest_EMINFO NOTHREADS;
+17531  by TARGET KEY;
+17532  run;
+ 
+NOTE: There were 3 observations read from the data set EMWS1.HPDMFOREST_EMINFO.
+NOTE: The data set EMWS1.HPDMFOREST_EMINFO has 3 observations and 3 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        40
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+*------------------------------------------------------------*
+* Report Log
+Date:                07 January 2024
+Time:                08:59:49
+*------------------------------------------------------------*
+17556  data EMWS1.HPDMForest_EMOUTFIT;
+17557  set EMWS1.HPDMForest_EMOUTFIT;
+17558  length TargetLabel $200;
+17559  label targetLabel = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))";
+17560  run;
+ 
+NOTE: Variable TargetLabel is uninitialized.
+NOTE: There were 1 observations read from the data set EMWS1.HPDMFOREST_EMOUTFIT.
+NOTE: The data set EMWS1.HPDMFOREST_EMOUTFIT has 1 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     241
+      Page Swaps                        0
+      Voluntary Context Switches        37
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+17561  proc sort data=EMWS1.HPDMForest_EMREPORTFIT nothreads;
+17562  by TARGET;
+17563  run;
+ 
+NOTE: There were 9 observations read from the data set EMWS1.HPDMFOREST_EMREPORTFIT.
+NOTE: The data set EMWS1.HPDMFOREST_EMREPORTFIT has 9 observations and 7 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        31
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+17564  %let _EMwarndup = 0;
+17565  %let _EMtargetdup =;
+17566  %let _EMASEtargetdup =;
+17567  data _null_;
+17568  set EMWS1.HPDMForest_EMOUTFIT;
+17569  if .<_ASE_<0.000001 then do;
+17570  call symput('_EMwarndup', '1');
+17571  call symput('_EMtargetdup', target);
+17572  call symput('_EMASEtargetdup', put(_ASE_, best.));
+17573  end;
+17574  run;
+ 
+NOTE: There were 1 observations read from the data set EMWS1.HPDMFOREST_EMOUTFIT.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     60
+      Page Swaps                        0
+      Voluntary Context Switches        3
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+17575  %let EMEXCEPTIONSTRING=;
+17576  *------------------------------------------------------------*;
+17577  * REPORT: HPDMForest;
+17578  *------------------------------------------------------------*;
+17579  %let EM_ACTION = REPORT;
+17580  %let syscc = 0;
+17581  %macro main;
+17582
+17583     %if %upcase(&EM_ACTION) = CREATE %then %do;
+17584         filename temp catalog 'sashelp.hpdm.hpdmforest_create.source';
+17585         %include temp;
+17586         filename temp;
+17587         %hpdm_Forest_create;
+17588     %end;
+17589     %else
+17590     %if %upcase(&EM_ACTION) = TRAIN %then %do;
+17591         filename temp catalog 'sashelp.hpdm.hpdmforest_train.source';
+17592         %include temp;
+17593         filename temp;
+17594         %hpdm_Forest_train;
+17595     %end;
+17596     %else
+17597     %if %upcase(&EM_ACTION) = SCORE %then %do;
+17598         %em_checkmacro(name=EM_PROPERTY_VARSELECT, value=Y, global=Y);
+17599         %em_checkmacro(name=EM_PROPERTY_VIMETHOD, value=LOSSREDUCTION);
+17600          %if "&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" = "RBA" %then %do;
+17601              %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+17602              %if %sysfunc(fileexist(&EM_USER_OUTMDLFILE))=0 %then %do;
+17603                  /* when the Variable Importance method has changed to RBA after running with Use as Modeling=No, need to re-train to create the outmdl file */
+17604                 filename temp catalog 'sashelp.hpdm.hpdmforest_train.source';
+17605                 %include temp;
+17606                 filename temp;
+17607                 %hpdm_Forest_train;
+17608              %end;
+17609          %end;
+17610          filename temp catalog 'sashelp.hpdm.hpdmforest_score.source';
+17611          %include temp;
+17612          filename temp;
+17613          %hpdm_Forest_score;
+17614     %end;
+17615     %else
+17616     %if %upcase(&EM_ACTION) = REPORT %then %do;
+17617         filename temp catalog 'sashelp.hpdm.hpdmforest_report.source';
+17618         %include temp;
+17619         filename temp;
+17620         %hpdm_Forest_report;
+17621     %end;
+17622     %else
+17623
+17624  %mend main;
+17625
+17626  %main;
+NOTE: %INCLUDE (level 1) file TEMP is file SASHELP.HPDM.HPDMFOREST_REPORT.SOURCE.
+17627 +%Macro hpdm_Forest_report;
+17629 +   /* Baseline Table */
+17630 +   %EM_GETNAME(KEY=BASELINE, TYPE=DATA);
+17631 +   data &EM_USER_BASELINE;
+17632 +     set &EM_USER_BASELINE;
+17633 +     label statistic  = "%sysfunc(sasmsg(sashelp.dmine, rpt_rptstatistic_vlabel ,  NOQUOTE))"
+17634 +           value      = "%sysfunc(sasmsg(sashelp.dmine, rpt_roletrain_value,  NOQUOTE))"
+17635 +           validation   = "%sysfunc(sasmsg(sashelp.dmine, rpt_validate_vlabel,  NOQUOTE))"
+17636 +     ;
+17637 +   run;
+17638 +   %EM_REPORT(key=BASELINE, viewtype=DATA, block=MODEL, description=BASELINE, autodisplay=N);
+17640 +   /* Iteration Table */
+17641 +   %EM_GETNAME(KEY=ITERATION, TYPE=DATA);
+17642 +   data &EM_USER_ITERATION;
+17643 +     set &EM_USER_ITERATION;
+17644 +     label Ntrees = "%sysfunc(sasmsg(sashelp.dmine, rpt_hpnumtrees_vlabel,  NOQUOTE))"
+17645 +           NLeaves = "%sysfunc(sasmsg(sashelp.dmine, rpt_nleaves_vlabel,  NOQUOTE))"
+17646 +           MiscAll = "%sysfunc(sasmsg(sashelp.dmine, rpt_miscall_vlabel,  NOQUOTE))"
+17647 +           MiscOob = "%sysfunc(sasmsg(sashelp.dmine, rpt_miscoob_vlabel,  NOQUOTE))"
+17648 +           MiscValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_miscvalid_vlabel,  NOQUOTE))"
+17649 +           PredAll = "%sysfunc(sasmsg(sashelp.dmine, rpt_predall_vlabel,  NOQUOTE))"
+17650 +           PredOob = "%sysfunc(sasmsg(sashelp.dmine, rpt_predoob_vlabel,  NOQUOTE))"
+17651 +           PredValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_predvalid_vlabel,  NOQUOTE))"
+17652 +           LogLossAll = "%sysfunc(sasmsg(sashelp.dmine, rpt_loglossall_vlabel,  NOQUOTE))"
+17653 +           LogLossOob = "%sysfunc(sasmsg(sashelp.dmine, rpt_loglossoob_vlabel,  NOQUOTE))"
+17654 +           LogLossValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_loglossvalid_vlabel,  NOQUOTE))"
+17655 +           ;
+17656 +   run;
+17657 +   %EM_REPORT(key=ITERATION, viewtype=DATA, block=MODEL, description=HPFORESTITERHIST, autodisplay=Y);
+17659 +   /* Iteration Plots */
+17661 +   /* if run on the grid, the iteration information is not retained therefore we do not want to generate the plots */
+17662 +   %let iterdsid = %sysfunc(open(&EM_USER_ITERATION));
+17663 +   %let iternum=0;
+17664 +   %if &iterdsid %then %do;
+17665 +     %let iternum = %sysfunc(ATTRN(&iterdsid, NOBS));
+17666 +   %end;
+17667 +   %if &iterdsid ne %then %let iterdsid = %sysfunc(close(&iterdsid));
+17669 +   %if &iternum > 1 %then %do;
+17670 +     %EM_GETNAME(KEY=ITERPLOT, TYPE=DATA);
+17672 +     %if "%EM_TARGET_LEVEL" ne "INTERVAL" %then %do;
+17674 +       /* determine if miscoob is in iteration table */
+17675 +       %local miscoob miscvalid;
+17676 +       data _null_;
+17677 +         set &EM_USER_ITERATION (obs=2) end=eof;
+17678 +         if eof then do;
+17679 +           call symput("miscoob"  , strip(put(miscoob, best.)));
+17680 +           call symput("miscvalid"  , strip(put(miscvalid, best.)));
+17681 +         end;
+17682 +       run;
+17684 +       data &EM_USER_ITERPLOT;
+17685 +         length DataSource $32;
+17686 +         set &EM_USER_ITERATION(in=_a rename=(MISCALL=_MISC_ PREDALL=_ASE_) keep=MISCALL PREDALL NTREES)
+17687 +            /* if leafFraction=1 then OOB values are not generated */
+17688 +            %if ((&EM_PROPERTY_TRAINFRACTION ne 1.0) AND ("&miscoob" ne ".")) %then %do;
+17689 +              &EM_USER_ITERATION(in=_b rename=(MISCOOB =_MISC_ PREDOOB=_ASE_) keep=MISCOOB PREDOOB NTREES)
+17690 +            %end;
+17691 +            %if ("&miscvalid" ne ".") %then %do;
+17692 +              &EM_USER_ITERATION(in=_c rename=(MISCvalid =_MISC_ PREDValid=_ASE_) keep=MISCvalid PREDvalid NTREES)
+17693 +            %end;
+17694 +         ;
+17695 +         if _a then do;
+17696 +           DataSource = "%sysfunc(sasmsg(sashelp.dmine, rpt_roletrain_value,  NOQUOTE))";
+17697 +         end;
+17698 +         else if _b then do;
+17699 +           DataSource = "%sysfunc(sasmsg(sashelp.dmine, rpt_outofbag_vlabel,  NOQUOTE))";
+17700 +         end;
+17701 +         else if _c then do;
+17702 +            DataSource = "%sysfunc(sasmsg(sashelp.dmine, rpt_rolevalidate_value,  NOQUOTE))";
+17703 +         end;
+17704 +         label _MISC_ = "%sysfunc(sasmsg(sashelp.dmine, rpt_misclassrate_vlabel,  NOQUOTE))"
+17705 +               datasource="%sysfunc(sasmsg(sashelp.dmine, meta_datasource_vlabel,  NOQUOTE))"
+17706 +               _ASE_  = "%sysfunc(sasmsg(sashelp.dmine, stat_ase_vlabel,  NOQUOTE))";
+17707 +         keep ntrees datasource _MISC_ _ASE_;
+17708 +       run;
+17710 +       %EM_REPORT(key=ITERPLOT, viewtype=LINEPLOT, block=MODEL, view=1, X=NTrees, Y=_MISC_, group=DataSource, autodisplay=Y, Description=HPFORESTITERPLOT);
+17711 +       %EM_REPORT(VIEW=1, Y=_ASE_);
+17712 +      %end;
+17713 +      %else %do;
+17714 +       /* determine if predoob is in iteration table */
+17715 +       %local predoob predvalid;
+17716 +       data _null_;
+17717 +         set &EM_USER_ITERATION (obs=2) end=eof;
+17718 +         if eof then do;
+17719 +           call symput("predoob"  , strip(put(predoob, best.)));
+17720 +           call symput("predvalid"  , strip(put(predvalid, best.)));
+17721 +         end;
+17722 +       run;
+17723 +       data &EM_USER_ITERPLOT;
+17724 +         length DataSource $32;
+17725 +         set &EM_USER_ITERATION(in=_a rename=(PREDALL=_ASE_) keep=PREDALL NTREES)
+17726 +            /* if leafFraction=1 then OOB values are not generated */
+17727 +            %if ((&EM_PROPERTY_TRAINFRACTION ne 1.0) AND ("&predoob" ne ".")) %then %do;
+17728 +              &EM_USER_ITERATION(in=_b rename=(PREDOOB=_ASE_) keep= PREDOOB NTREES)
+17729 +            %end;
+17730 +            %if ("&predvalid" ne ".") %then %do;
+17731 +              &EM_USER_ITERATION(in=_c rename=(PREDvalid=_ASE_) keep= PREDvalid NTREES)
+17732 +            %end;
+17733 +         ;
+17734 +         if _a then do;
+17735 +           DataSource = "%sysfunc(sasmsg(sashelp.dmine, rpt_roletrain_value,  NOQUOTE))";
+17736 +         end;
+17737 +         else if _b then do;
+17738 +           DataSource = "%sysfunc(sasmsg(sashelp.dmine, rpt_outofbag_vlabel,  NOQUOTE))";
+17739 +         end;
+17740 +         else if _c then do;
+17741 +           DataSource = "%sysfunc(sasmsg(sashelp.dmine, rpt_rolevalidate_value,  NOQUOTE))";
+17742 +         end;
+17743 +         label _ASE_  = "%sysfunc(sasmsg(sashelp.dmine, stat_ase_vlabel,  NOQUOTE))"
+17744 +               datasource="%sysfunc(sasmsg(sashelp.dmine, meta_datasource_vlabel,  NOQUOTE))"
+17745 +         ;
+17746 +         keep ntrees datasource _ASE_;
+17747 +       run;
+17749 +       %EM_REPORT(key=ITERPLOT, viewtype=LINEPLOT, block=MODEL, view=1, X=NTrees, Y=_ASE_, group=DataSource, autodisplay=Y, Description=HPFORESTITERPLOT);
+17750 +       /* %EM_REPORT(VIEW=1, Y=_ASE_); */
+17751 +      %end;
+17753 +      /* calculate number of leaves in each tree vs cumulative counts and generate plotting table */
+17754 +      data work.tempLeavesBase(keep= NTrees NLeavesBase) work.tempLeavesInc(keep=NTrees NLeavesPerTree);
+17755 +        set &EM_USER_ITERATION;
+17756 +        length NLeavesPerTree NLeavesBase 8;
+17758 +        retain previousN;
+17760 +        if _N_=1 then do;
+17761 +         previousN=NLeaves;
+17762 +         NLeavesPerTree=0;
+17763 +         NLeavesBase=NLeaves;
+17764 +        end;
+17765 +        else do;
+17766 +          NLeavesPerTree=NLeaves - PreviousN;
+17767 +          NLeavesBase = previousN;
+17768 +          previousN=Nleaves;
+17769 +        end;
+17771 +        output work.tempLeavesBase;
+17772 +        output work.tempLeavesInc;
+17773 +      run;
+17775 +      %EM_GETNAME(KEY=LEAFPLOT, TYPE=DATA);
+17776 +      data &EM_USER_LEAFPLOT;
+17777 +        length group $20;
+17778 +        set work.tempLeavesBase(in=_a rename=(NLeavesBase=NLeaves)) work.tempLeavesInc(rename=(NLeavesPerTree=NLeaves));
+17779 +        if _a then
+17780 +         group="%sysfunc(sasmsg(sashelp.dmine, rpt_base_vlabel,  NOQUOTE))";
+17781 +        else
+17782 +         group="%sysfunc(sasmsg(sashelp.dmine, rpt_increment_vlabel,  NOQUOTE))";
+17783 +        label group="%sysfunc(sasmsg(sashelp.dmine, rpt_group_vlabel,  NOQUOTE))"
+17784 +              NLeaves = "%sysfunc(sasmsg(sashelp.dmine, rpt_nleaves_vlabel,  NOQUOTE))";
+17785 +      run;
+17787 +      proc datasets library=work nolist;
+17788 +        delete tempLeavesBase tempLeavesInc;
+17789 +      run;
+17790 +      quit;
+17791 +      %EM_REPORT(key=LEAFPLOT, viewtype=BAR, X=NTREES, FREQ=NLEAVES, group=group, BLOCK=MODEL, Description=HPFORESTLEAFPLOT, Autodisplay=Y);
+17792 +      %EM_REPORT(key=LEAFPLOT, where=%nrbquote(group="%sysfunc(sasmsg(sashelp.dmine, rpt_increment_vlabel,  NOQUOTE))"), viewtype=histogram, x=NLEAVES, BLOCK=MODEL, Description=LEAFSTATS, Autodisplay=Y);
+17794 +   %end;
+17796 +   /* Variable Importance Table */
+17797 +   %EM_GETNAME(KEY=VARIMPORT, TYPE=DATA);
+17799 +   proc sort data=&EM_DATA_VARIABLESET out=tempvarset(keep=NAME LABEL rename=(NAME=VARIABLE));
+17800 +     by NAME;
+17801 +     where ((ROLE='INPUT' and USE in('Y', 'D')) or ROLE='REJECTED' and USE='Y');
+17802 +   run;
+17803 +   data tempvarset;
+17804 +     length _upvar $32;
+17805 +     set tempvarset;
+17806 +     _upvar=upcase(variable);
+17807 +   run;
+17808 +   proc sort data=tempvarset; by _upvar ; run;
+17810 +   data &EM_USER_VARIMPORT; length _upvar $32; set &EM_USER_VARIMPORT; _upvar=upcase(variable); run;
+17811 +   proc sort data=&EM_USER_VARIMPORT; by _upvar; run;
+17813 +   data &EM_USER_VARIMPORT;
+17814 +     merge &EM_USER_VARIMPORT(in=_a) tempvarset;
+17815 +     by _upvar;
+17816 +     if _a;
+17817 +     label Variable="%sysfunc(sasmsg(sashelp.dmine, meta_name_vlabel, NOQUOTE))"
+17818 +           NRules="%sysfunc(sasmsg(sashelp.dmine, rpt_nrules_vlabel, NOQUOTE))"
+17819 +            %if "%EM_TARGET_LEVEL" ne "INTERVAL" %then %do;
+17820 +               Gini ="%sysfunc(sasmsg(sashelp.dmine, rpt_forestgini_vlabel, NOQUOTE))"
+17821 +               GiniOOB = "%sysfunc(sasmsg(sashelp.dmine, rpt_forestginioob_vlabel, NOQUOTE))"
+17822 +               GiniValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_forestginivalid_vlabel, NOQUOTE))"
+17823 +               Margin= "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_margin_vlabel, NOQUOTE))"
+17824 +               MarginOOB = "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_marginoob_vlabel, NOQUOTE))"
+17825 +               MarginValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_marginvalid_vlabel, NOQUOTE))"
+17826 +               %if "&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" = "RBA" %then %do;
+17827 +                  MarginRBA = "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_marginrba_vlabel, NOQUOTE))"
+17828 +                  MSERBA = "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_mserba_vlabel, NOQUOTE))"
+17829 +               %end;
+17830 +            %end;
+17831 +            %else %do;
+17832 +               MSE ="%sysfunc(sasmsg(sashelp.dmine, rpt_forestmse_vlabel, NOQUOTE))"
+17833 +               MSEOOB = "%sysfunc(sasmsg(sashelp.dmine, rpt_forestmseoob_vlabel, NOQUOTE))"
+17834 +               MSEValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_forestmsevalid_vlabel, NOQUOTE))"
+17835 +               AAE= "%sysfunc(sasmsg(sashelp.dmine, rpt_forestaae_vlabel, NOQUOTE))"
+17836 +               AAEOOB = "%sysfunc(sasmsg(sashelp.dmine, rpt_forestaaeoob_vlabel, NOQUOTE))"
+17837 +               AAEValid = "%sysfunc(sasmsg(sashelp.dmine, rpt_forestaaevalid_vlabel, NOQUOTE))"
+17838 +               %if "&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" = "RBA" %then %do;
+17839 +                  AAERBA = "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_aaerba_vlabel, NOQUOTE))"
+17840 +                  MSERBA = "%sysfunc(sasmsg(sashelp.dmine, rpt_forest_mserba_vlabel, NOQUOTE))"
+17841 +               %end;
+17842 +            %end;
+17843 +     ;
+17844 +     drop _upvar;
+17845 +   run;
+17846 +   proc sort data=&EM_USER_VARIMPORT; by descending NRULES; run;
+17847 +   %EM_REPORT(key=VARIMPORT, viewtype=DATA, block=MODEL, description=IMPORTANCE, autodisplay=Y);
+17849 +   %em_checkmacro(name=EM_PROPERTY_MODELING, value=Y, global=Y);
+17850 +   %if "&EM_PROPERTY_MODELING"="Y" or ("&EM_PROPERTY_VARSELECT" eq "Y" and "&EM_PROPERTY_VIMETHOD" ne "LOSSREDUCTION") %then %do;
+17851 +       %em_getname(key=OUTMDLFILE, type=FILE, extension=bin);
+17852 +       /* Include in SPK but not report */
+17853 +       %EM_REPORT(viewtype=, key=OUTMDLFILE);
+17854 +   %end;
+17856 +   %symdel hpfst_score_input hpfst_score_output EM_USER_OUTMDLFILE / nowarn;
+17858 +%Mend hpdm_Forest_report;
+NOTE: %INCLUDE (level 1) ending.
+NOTE: Fileref TEMP has been deassigned.
+ 
+NOTE: Variable validation is uninitialized.
+NOTE: There were 3 observations read from the data set EMWS1.HPDMFOREST_BASELINE.
+NOTE: The data set EMWS1.HPDMFOREST_BASELINE has 3 observations and 2 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     470
+      Page Swaps                        0
+      Voluntary Context Switches        37
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: The data set WORK.EM_USER_REPORT has 132 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.02 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     214
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: Variable MiscValid is uninitialized.
+NOTE: Variable PredValid is uninitialized.
+NOTE: Variable LogLossValid is uninitialized.
+NOTE: There were 71 observations read from the data set EMWS1.HPDMFOREST_ITERATION.
+NOTE: The data set EMWS1.HPDMFOREST_ITERATION has 71 observations and 8 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     1381
+      Page Swaps                        0
+      Voluntary Context Switches        38
+      Involuntary Context Switches      1
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 132 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 264 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.03 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     237
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: Variable miscvalid is uninitialized.
+NOTE: There were 2 observations read from the data set EMWS1.HPDMFOREST_ITERATION.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     62
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+ 
+NOTE: Variable _c is uninitialized.
+NOTE: There were 71 observations read from the data set EMWS1.HPDMFOREST_ITERATION.
+NOTE: There were 71 observations read from the data set EMWS1.HPDMFOREST_ITERATION.
+NOTE: The data set EMWS1.HPDMFOREST_ITERPLOT has 142 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     813
+      Page Swaps                        0
+      Voluntary Context Switches        23
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 264 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 397 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.03 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     198
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+ 
+NOTE: There were 397 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 530 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.02 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     195
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+ 
+ 
+ 
+NOTE: There were 71 observations read from the data set EMWS1.HPDMFOREST_ITERATION.
+NOTE: The data set WORK.TEMPLEAVESBASE has 71 observations and 2 variables.
+NOTE: The data set WORK.TEMPLEAVESINC has 71 observations and 2 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     193
+      Page Swaps                        0
+      Voluntary Context Switches        3
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           528
+ 
+ 
+ 
+NOTE: There were 71 observations read from the data set WORK.TEMPLEAVESBASE.
+NOTE: There were 71 observations read from the data set WORK.TEMPLEAVESINC.
+NOTE: The data set EMWS1.HPDMFOREST_LEAFPLOT has 142 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     624
+      Page Swaps                        0
+      Voluntary Context Switches        21
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: Deleting WORK.TEMPLEAVESBASE (memtype=DATA).
+NOTE: Deleting WORK.TEMPLEAVESINC (memtype=DATA).
+ 
+NOTE: PROCEDURE DATASETS used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     61
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+ 
+ 
+ 
+NOTE: There were 530 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 662 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.03 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     254
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           776
+ 
+ 
+ 
+NOTE: There were 662 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 795 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.03 seconds
+      user cpu time       0.03 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     228
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           776
+ 
+ 
+ 
+NOTE: There were 11 observations read from the data set EMWS1.HPDMFOREST_VARIABLESET.
+      WHERE ((ROLE='INPUT') and USE in ('D', 'Y')) or ((ROLE='REJECTED') and (USE='Y'));
+NOTE: The data set WORK.TEMPVARSET has 11 observations and 2 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     150
+      Page Swaps                        0
+      Voluntary Context Switches        3
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           272
+ 
+ 
+ 
+NOTE: There were 11 observations read from the data set WORK.TEMPVARSET.
+NOTE: The data set WORK.TEMPVARSET has 11 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     129
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 11 observations read from the data set WORK.TEMPVARSET.
+NOTE: The data set WORK.TEMPVARSET has 11 observations and 3 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 11 observations read from the data set EMWS1.HPDMFOREST_VARIMPORT.
+NOTE: The data set EMWS1.HPDMFOREST_VARIMPORT has 11 observations and 7 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     127
+      Page Swaps                        0
+      Voluntary Context Switches        40
+      Involuntary Context Switches      3
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 11 observations read from the data set EMWS1.HPDMFOREST_VARIMPORT.
+NOTE: The data set EMWS1.HPDMFOREST_VARIMPORT has 11 observations and 7 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        42
+      Involuntary Context Switches      1
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: Variable GiniValid is uninitialized.
+NOTE: Variable MarginValid is uninitialized.
+NOTE: There were 11 observations read from the data set EMWS1.HPDMFOREST_VARIMPORT.
+NOTE: There were 11 observations read from the data set WORK.TEMPVARSET.
+NOTE: The data set EMWS1.HPDMFOREST_VARIMPORT has 11 observations and 7 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     1083
+      Page Swaps                        0
+      Voluntary Context Switches        38
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 11 observations read from the data set EMWS1.HPDMFOREST_VARIMPORT.
+NOTE: The data set EMWS1.HPDMFOREST_VARIMPORT has 11 observations and 7 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        40
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+ 
+NOTE: There were 795 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 927 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.02 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     290
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           1032
+ 
+ 
+ 
+NOTE: There were 927 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 1059 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.02 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44504.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     259
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           1032
+ 
+ 
+17859
+17860  *------------------------------------------------------------*;
+17861  * End REPORT: HPDMForest;
+17862  *------------------------------------------------------------*;
+ 
+17863  /* Reset EM Options */
+17864  options formchar="|----|+|---+=|-/\<>*";
+17865  options nocenter ls=256 ps=10000;
+17866  goptions reset=all device=GIF NODISPLAY;
+ 
+17867  proc sort data=WORK.EM_USER_REPORT;
+17868  by ID VIEW;
+17869  run;
+ 
+NOTE: There were 1059 observations read from the data set WORK.EM_USER_REPORT.
+NOTE: The data set WORK.EM_USER_REPORT has 1059 observations and 4 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44676.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     253
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           1032
+ 
+ 
+17870  proc sort data=EMWS1.Part_CMeta_TRAIN out=WORK.SUBSETINMETA;
+17871  by NAME;
+17872  run;
+ 
+NOTE: There were 16 observations read from the data set EMWS1.PART_CMETA_TRAIN.
+NOTE: The data set WORK.SUBSETINMETA has 16 observations and 20 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44676.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     148
+      Page Swaps                        0
+      Voluntary Context Switches        2
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+ 
+ 
+17873  proc sort data=EMWS1.HPDMForest_VariableSet out=WORK.SUBSETVARSET(keep=NAME REPORT);
+17874  by NAME;
+17875  run;
+ 
+NOTE: There were 16 observations read from the data set EMWS1.HPDMFOREST_VARIABLESET.
+NOTE: The data set WORK.SUBSETVARSET has 16 observations and 2 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44676.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     151
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+ 
+ 
+17876  data WORK.ASSESS_META;
+17877  merge WORK.SUBSETINMETA WORK.SUBSETVARSET;
+17878  by NAME;
+17879  run;
+ 
+NOTE: There were 16 observations read from the data set WORK.SUBSETINMETA.
+NOTE: There were 16 observations read from the data set WORK.SUBSETVARSET.
+NOTE: The data set WORK.ASSESS_META has 16 observations and 20 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44676.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     166
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+17880  data EM_temp_assessMeta;
+17881  set EMWS1.HPDMForest_CMeta_TRAIN;
+17882  where role in('DECISION', 'PREDICT', 'RESIDUAL', 'CLASSIFICATION', 'ASSESS', 'COST');
+17883  run;
+ 
+NOTE: There were 8 observations read from the data set EMWS1.HPDMFOREST_CMETA_TRAIN.
+      WHERE role in ('ASSESS', 'CLASSIFICATION', 'COST', 'DECISION', 'PREDICT', 'RESIDUAL');
+NOTE: The data set WORK.EM_TEMP_ASSESSMETA has 8 observations and 21 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44676.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     129
+      Page Swaps                        0
+      Voluntary Context Switches        8
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+17884  data EM_temp_assessdata;
+17885  set EMWS1.HPDMForest_TRAIN(keep=
+17886  F_Churn
+17887  I_Churn
+17888  P_Churn0
+17889  P_Churn1
+17890  R_Churn0
+17891  R_Churn1
+17892  U_Churn
+17893  _WARN_
+17894  Churn
+17895  );
+17896  run;
+ 
+NOTE: There were 816 observations read from the data set EMWS1.HPDMFOREST_TRAIN.
+NOTE: The data set WORK.EM_TEMP_ASSESSDATA has 816 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              35604.21k
+      OS Memory           44676.00k
+      Timestamp           07/01/2024 08:59:49 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     114
+      Page Swaps                        0
+      Voluntary Context Switches        4
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+22174  %let _cn = %sysfunc(getoption(CENTER));
+22175  options nocenter;
+22176  proc print data=EMWS1.HPDMForest_EMREPORTFIT noobs label;
+22177  var STAT LABEL TRAIN
+22178  TEST
+22179  ;
+22180  by TARGET TARGETLABEL;
+22181  title9 ' ';
+22182  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_fitstat_title  , NOQUOTE))";
+22183  run;
+ 
+NOTE: There were 9 observations read from the data set EMWS1.HPDMFOREST_EMREPORTFIT.
+NOTE: The PROCEDURE PRINT printed page 9.
+NOTE: PROCEDURE PRINT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     174
+      Page Swaps                        0
+      Voluntary Context Switches        6
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+ 
+ 
+22184  title10;
+22185  options &_cn;
+ 
+22186  proc sort data=EMWS1.HPDMForest_EMCLASSIFICATION nothreads;
+22187  by DATAROLE TARGET TARGETLABEL;
+22188  run;
+ 
+NOTE: There were 4 observations read from the data set EMWS1.HPDMFOREST_EMCLASSIFICATION.
+NOTE: The data set EMWS1.HPDMFOREST_EMCLASSIFICATION has 4 observations and 12 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     117
+      Page Swaps                        0
+      Voluntary Context Switches        29
+      Involuntary Context Switches      9
+      Block Input Operations            0
+      Block Output Operations           264
+ 
+ 
+22189  %let _cn = %sysfunc(getoption(CENTER));
+22190  options nocenter;
+22191  proc print data=EMWS1.HPDMForest_EMCLASSIFICATION noobs label;
+22192  var from into pct_row pct_col count percent
+22193  ;
+22194  by DATAROLE TARGET TARGETLABEL;
+22195  label FROM = "%sysfunc(sasmsg(sashelp.dmine, rpt_target_vlabel ,     NOQUOTE))";
+22196  label INTO = "%sysfunc(sasmsg(sashelp.dmine, rpt_outcome_vlabel ,    NOQUOTE))";
+22197  label PCT_ROW = "%sysfunc(sasmsg(sashelp.dmine, rpt_targetpct_vlabel ,  NOQUOTE))";
+22198  label PCT_COL = "%sysfunc(sasmsg(sashelp.dmine, rpt_outcomepct_vlabel , NOQUOTE))";
+22199  label COUNT = "%sysfunc(sasmsg(sashelp.dmine, rpt_count_vlabel ,      NOQUOTE))";
+22200  label PERCENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_totalpct_vlabel ,   NOQUOTE))";
+22201  where _TYPE_='PREDICTION';
+22202  title9 ' ';
+22203  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_classification_title    , NOQUOTE))";
+22204  run;
+ 
+NOTE: There were 4 observations read from the data set EMWS1.HPDMFOREST_EMCLASSIFICATION.
+      WHERE _TYPE_='PREDICTION';
+NOTE: The PROCEDURE PRINT printed page 10.
+NOTE: PROCEDURE PRINT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     855
+      Page Swaps                        0
+      Voluntary Context Switches        12
+      Involuntary Context Switches      0
+      Block Input Operations            288
+      Block Output Operations           0
+ 
+ 
+22205  title9;
+22206  title10;
+22207  options &_cn;
+ 
+22208  %let _cn = %sysfunc(getoption(CENTER));
+22209  options nocenter;
+22210  data EMWS1.HPDMForest_EMEVENTREPORT;
+22211  length DATAROLE TARGET $32 TARGETLABEL $200 FALSENEVENT TRUENEVENT FALSEEVENT TRUEEVENT 8;
+22212  label DATAROLE = "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel ,    NOQUOTE))" TARGET = "%sysfunc(sasmsg(sashelp.dmine, rpt_target_vlabel ,      NOQUOTE))" TARGETLABEL = "%sysfunc(sasmsg(sashelp.dmine, meta_targetlabel_vlabel, NOQUOTE))"
+22212! FALSEEVENT
+22213  = "%sysfunc(sasmsg(sashelp.dmine, rpt_falseevent_vlabel ,  NOQUOTE))" FALSENEVENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_falsenevent_vlabel , NOQUOTE))" TRUEEVENT = "%sysfunc(sasmsg(sashelp.dmine, rpt_trueevent_vlabel ,   NOQUOTE))" TRUENEVENT =
+22214     "%sysfunc(sasmsg(sashelp.dmine, rpt_truenevent_vlabel ,  NOQUOTE))";
+22215  FALSEEVENT=0;
+22216  FALSENEVENT=0;
+22217  TRUEEVENT=0;
+22218  TRUENEVENT=0;
+22219  set EMWS1.HPDMForest_EMEVENTREPORT;
+22220  run;
+ 
+NOTE: There were 1 observations read from the data set EMWS1.HPDMFOREST_EMEVENTREPORT.
+NOTE: The data set EMWS1.HPDMFOREST_EMEVENTREPORT has 1 observations and 7 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     924
+      Page Swaps                        0
+      Voluntary Context Switches        36
+      Involuntary Context Switches      1
+      Block Input Operations            288
+      Block Output Operations           264
+ 
+ 
+22221  proc print data=EMWS1.HPDMForest_EMEVENTREPORT noobs label;
+22222  title9 ' ';
+22223  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_eventtable_title    , NOQUOTE))";
+22224  by notsorted DATAROLE notsorted TARGET notsorted TARGETLABEL;
+22225  run;
+ 
+NOTE: There were 1 observations read from the data set EMWS1.HPDMFOREST_EMEVENTREPORT.
+NOTE: The PROCEDURE PRINT printed page 11.
+NOTE: PROCEDURE PRINT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     170
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      1
+      Block Input Operations            288
+      Block Output Operations           0
+ 
+ 
+22226  title10;
+22227  options &_cn;
+ 
+22228  proc datasets library=EMWS1 nolist;
+22229  modify HPDMForest_EMRANK;
+22230  label target = "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel ,   NOQUOTE))";
+22231  label datarole = "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel ,    NOQUOTE))";
+22232  run;
+ 
+NOTE: MODIFY was successful for EMWS1.HPDMFOREST_EMRANK.DATA.
+22233  quit;
+ 
+NOTE: PROCEDURE DATASETS used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     346
+      Page Swaps                        0
+      Voluntary Context Switches        10
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           536
+ 
+ 
+22234  %let _cn = %sysfunc(getoption(CENTER));
+22235  options nocenter;
+22236  proc print data=EMWS1.HPDMForest_EMRANK label noobs;
+22237  var
+22238  decile gain lift liftc resp respc N _meanP_;
+22239  by
+22240  notsorted DATAROLE
+22241  notsorted TARGET
+22242  notsorted TARGETLABEL
+22243  ;
+22244  title9 ' ';
+22245  title10 "%sysfunc(sasmsg(sashelp.dmine, rpt_scoreranking_title , NOQUOTE))";
+22246  run;
+ 
+NOTE: There were 20 observations read from the data set EMWS1.HPDMFOREST_EMRANK.
+NOTE: The PROCEDURE PRINT printed page 12.
+NOTE: PROCEDURE PRINT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     171
+      Page Swaps                        0
+      Voluntary Context Switches        12
+      Involuntary Context Switches      0
+      Block Input Operations            544
+      Block Output Operations           0
+ 
+ 
+22247  title10;
+22248  options &_cn;
+ 
+22249  proc datasets library=EMWS1 nolist;
+22250  modify HPDMForest_EMSCOREDIST;
+22251  label target = "%sysfunc(sasmsg(sashelp.dmine, rpt_targetvar_vlabel ,      NOQUOTE))";
+22252  label datarole = "%sysfunc(sasmsg(sashelp.dmine, rpt_datarole_vlabel ,    NOQUOTE))";
+22253  run;
+ 
+NOTE: MODIFY was successful for EMWS1.HPDMFOREST_EMSCOREDIST.DATA.
+22254  quit;
+ 
+NOTE: PROCEDURE DATASETS used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              39294.25k
+      OS Memory           52076.00k
+      Timestamp           07/01/2024 08:59:50 AM
+      Step Count                        1  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     344
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           536
+ 
+ 
