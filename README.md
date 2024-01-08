@@ -4,67 +4,73 @@
 
 **Github link:** <https://github.com/Syahirulkhaliq/Khaliq_22075208/>
 
-# Introduction to dataset and objective
+# Customer Behaviour Analysis via Churn on E-commerce dataset
+
+# Introduction
+
+Customer behavior analysis in e-commerce is crucial as it provides insights into shopping patterns, preferences, and decision-making processes of customers. By understanding these behaviors, e-commerce businesses can develop their marketing strategies, improve customer experiences, and enhance product offerings. This analysis is key to customer retention, optimizing sales techniques, and driving business growth in a highly competitive digital marketplace. Effective customer behavior analysis leads to more personalized, efficient, and engaging online shopping experiences, directly impacting customer satisfaction and loyalty.
+
+SAS Enterprise Miner is a powerful tool for customer behavior analysis in e-commerce. It streamlines data preprocessing, effectively handling issues like missing data and outliers. The software provides a range of modeling techniques, such as decision trees and neural networks, to gain deep insights into customer behaviors. Its segmentation and profiling capabilities aid in identifying different customer groups, facilitating targeted marketing. SAS Enterprise Miner's ability to process large datasets efficiently makes it ideal for e-commerce applications. Moreover, it offers intuitive graphical outputs for result interpretation, crucial for informed business decision-making.
+
+# Dataset Overview and objective
 
 Dataset consists of 1020 rows of unique customers and 13 attributes
 which are Customer ID, Gender, Age, City, Membership Type, Total Spend,
 Items Purchased, FavoriteCategory, Average Rating, Discount Applied,
 Days Since Last Purchase, Satisfaction Level and Churn. Below are the
-details of the attributes.
+details of the attributes:
 
-  -------------------------------------------------------------------------------
-  Column                     Type          Description
-  -------------------------- ------------- --------------------------------------
-  Customer_ID                Numeric       A unique identifier assigned to each
+
+  Customer_ID                (Numeric)     :  A unique identifier assigned to each
                                            customer, ensuring distinction across
                                            the dataset
 
-  Gender                     Categorical   Specifies the gender of the customer,
+  Gender                     (Categorical) :  Specifies the gender of the customer,
                                            allowing for gender-based analytics
 
-  Age                        Numeric       Represents the age of the customer,
+  Age                        (Numeric)     :  Represents the age of the customer,
                                            enabling age-group-specific insights.
 
-  City                       Categorical   Indicates the city of residence for
+  City                       (Categorical) :  Indicates the city of residence for
                                            each customer, providing geographic
                                            insights
 
-  Membership_Type            Categorical   Identifies the type of membership held
+  Membership_Type            (Categorical) :  Identifies the type of membership held
                                            by the customer, influencing perks and
                                            benefits
 
-  Total_Spend                Numeric       Records the total monetary expenditure
+  Total_Spend                (Numeric)     :  Records the total monetary expenditure
                                            by the customer on the e-commerce
                                            platform
 
-  Items_Purchased            Numeric       Quantifies the total number of items
+  Items_Purchased            (Numeric)     :  Quantifies the total number of items
                                            purchased by the customer
 
-  FavoriteCategory           Categorical   Records most-explored category of a
+  FavoriteCategory           (Categorical) :  Records most-explored category of a
                                            user, represents customer biasness
                                            towards products
 
-  Average_Rating             Numeric       Represents the average rating given by
+  Average_Rating             (Numeric)     :  Represents the average rating given by
                                            the customer for purchased items,
                                            gauging satisfaction
 
-  Discount_Applied           Boolean       Indicates whether a discount was
+  Discount_Applied           (Boolean)     :  Indicates whether a discount was
                                            applied to the customer\'s purchase,
                                            influencing buying behavior
 
-  Days_Since_Last_Purchase   Numeric       Reflects the number of days elapsed
+  Days_Since_Last_Purchase   (Numeric)     :  Reflects the number of days elapsed
                                            since the customer\'s most recent
                                            purchase, aiding in retention analysis
 
-  Satisfaction_Level         Categorical   Captures the overall satisfaction
+  Satisfaction_Level         (Categorical) :  Captures the overall satisfaction
                                            level of the customer, providing a
                                            subjective measure of their experience
 
-  Churn                      Numeric       A binary column indicating whether the
+  Churn                      (Numeric)     :  A binary column indicating whether the
                                            customer has churned (0 for retained,
                                            1 for churned), indicating customer
                                            retention
-  -------------------------------------------------------------------------------
+ 
 
 Based on the dataset, \"Churn\" variable is the most suitable target
 variable. This is because it directly relates to customer retention, a
@@ -75,7 +81,7 @@ being active. Analyzing churn can provide valuable insights into
 customer loyalty, satisfaction, and overall engagement with the
 e-commerce platform. It can also help in developing strategies to
 improve customer retention and targeting interventions to reduce the
-churn rate. Thus, objective of this study to
+churn rate. Thus, objective of this study to:
 
 -   Analyse the customer behaviour dataset and derived meaningful
     insights from the model analysis
@@ -96,22 +102,21 @@ alphabet casing, as well as checking missing values. There were some
 data inconsistencies that can be group using "Find and group similar
 text" function in city column as below:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image1.png){width="4.024090113735783in"
-height="2.168532370953631in"}
+![Example Image](image1.png)
+
 
 Such approach would be easier to conduct in Talend Data Preparation
 compared to SAS. In addition, missing values were detected in 'Age' and
 'Satisfaction Level' column as shown below:
 
-['Age' Column]{.underline}
+<u>Age Column</u>
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image2.png){width="2.2352252843394576in"
-height="1.9010378390201226in"}
+![Example Image](image2.png)
 
-['Satisfaction Level' column]{.underline}
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image3.png){width="2.2944181977252844in"
-height="2.106540901137358in"}
+<u>'Satisfaction Level' Column</u>
+
+![Example Image](image3.png)
 
 Considering the amount of dataset rows to be quite limited, imputation
 method is preferable in comparison with deleting rows to prevent the
@@ -121,31 +126,28 @@ Applied' was duplicated, and the duplicated columns were replace with
 binary values using 'replace the cells that match' function with below
 as an example:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image4.png){width="2.673086176727909in"
-height="2.241279527559055in"}
+![Example Image](image4.png)
 
 For 'Gender' column, 'Male' value represents as 1 while 'Female' value
 represents as 0. While for 'Discount Applied' column, 'TRUE' value
 represents as 1 while 'FALSE' value represents as 0. The result of
 columns are as below:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image5.png){width="2.483548775153106in"
-height="3.4169630358705163in"}![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image6.png){width="2.300082020997375in"
-height="3.4192475940507436in"}
+![Example Image](image5.png)
+
 
 The dataset was then exported to be imported in SAS for further
-preprocessing. Below
+preprocessing. Below are the SAS Workflow diagram:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image7.png){width="6.268055555555556in"
-height="3.8222222222222224in"}
+![Example Image](image6.png)
 
 The file was imported via 'File import' node. Considering the dataset
 consists of only 1020 rows, no sampling was needed as dataset itself
 will be considered as representation. Details of initial roles were as
 below:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image8.png){width="6.108862642169729in"
-height="2.2085247156605425in"}
+![Example Image](image7.png)
+
 
 In the 'edit variable' section of file import. Minor changes were
 conducted in terms of role and level. Churn was selected as the target
@@ -156,15 +158,15 @@ columns of these 2 columns. In addition, the level of
 Discount_Applied_Binary, Gender_Binary and Churn were set to Binary due
 to its binary value. Below are the overall changes made:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image9.png){width="6.048277559055118in"
-height="2.3201301399825023in"}
+![Example Image](image8.png)
+
 
 A quick exploration on attributes was conducted via choosing every
 related attributes in 'edit variable' section and clicking 'explore'.
 Below are some visualizations of the exploration:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image10.png){width="6.268055555555556in"
-height="3.0694444444444446in"}
+![Example Image](image9.png)
+
 
 Based on the graphs, there is opportunity to perform log transformation
 for skewed distribution, particularly 'Age' and 'Items_Purchased'
@@ -177,28 +179,23 @@ completely at random (MCAR) as well as having low count (only 14 for
 'Age' and 2 for 'Satisfaction_Level'), the method of imputation was set
 to Mean and Count respectively. Below are the changes made:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image11.png){width="4.292038495188102in"
-height="2.0585115923009623in"}
+![Example Image](image10.png)
 
 Below is the output after running impute node:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image12.png){width="6.68780293088364in"
-height="0.28391622922134735in"}
+![Example Image](image11.png)
+
 
 After that, 'Transform Variable' node was connected to normalize data
 via performing log transformation. This can be done on edit variable
 section of Transform variable node such as below:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image13.png){width="3.683652668416448in"
-height="2.0585115923009623in"}
+![Example Image](image12.png)
+
 
 The result of transformation is indicated as below:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image14.png){width="6.772754811898513in"
-height="0.46752187226596675in"}
-
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image14.png){width="6.3521041119860016in"
-height="1.1513495188101488in"}
+![Example Image](image13.png)
 
 The reduction in standard deviation and skewness of indicates a better
 distribution of the transformed attributes. The higher negative value of
@@ -215,8 +212,7 @@ Partitioning method was set to simple random method as every data points
 have equal chance to be selected, subsequently reducing biasness. Below
 are details of data partition process:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image15.png){width="2.275196850393701in"
-height="1.633474409448819in"}
+![Example Image](image14.png)
 
 # Data Modelling and Analysis
 
@@ -228,8 +224,8 @@ The maximum depth was limited to 3 to provide main overview of the
 important details of customer behaviour. Below are the decision tree
 details:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image16.png){width="6.268055555555556in"
-height="3.5729166666666665in"}
+![Example Image](image15.png)
+
 
 From the decision tree formed, this indicates that favorite category
 affects the most outcome of Churn. While electronics from category are
@@ -259,8 +255,7 @@ There a few strategies that can be developed from this model:
 
 ## Bagging using High Performance Random Forest (HP Random Forest)
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image17.png){width="6.268055555555556in"
-height="0.83125in"}
+![Example Image](image16.png)
 
 The variable importance indicated that Gender_Binary, FavoriteCategory,
 Discount_Applied_Binary and Age are the top 4 attributes of the
@@ -286,8 +281,7 @@ find its minimal globalization, which is around 189 iterations. Thus, it
 is used in case study. The variable indicator based on result running is
 as below:
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image18.png){width="6.268055555555556in"
-height="1.3916666666666666in"}
+![Example Image](image17.png)
 
 As indicated, the top 5 main factors influencing such result would be
 'total spend', 'Day Since Last Purchase', 'Items Purchased', 'City' and
@@ -308,11 +302,10 @@ would be:
 The model comparison node was utilized the compare the performance of
 tree models utilized
 
-### 
-
 ### Classification table
 
-### 
+![Example Image](image18.png)
+
 
 Classification table involves 4 labels, which are True Positive, True
 Negative, False Positive, False Negative. These are the description of
@@ -338,8 +331,7 @@ FN is the most important label in this aspect as it describes the
 failure of capturing potential customers that will churn. While other
 labels are important as well, FN is the main focus on this evaluation.
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image19.png){width="6.268055555555556in"
-height="1.2597222222222222in"}
+![Example Image](image19.png)
 
 Based on training dataset classification table , HP Forest model is the
 least suitable model in predicting churn risk as it generates FN more
@@ -353,10 +345,10 @@ Decision Tree with 128
 This will involve comparison based on few metrices based on model in
 both trained and test data
 
-[Trained data]{.underline}
+<u>Trained Data</u>
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image20.png){width="5.833838582677165in"
-height="4.142025371828521in"}
+![Example Image](image20.png)
+
 
 Overall, Gradient Boosting decision tree is significantly the better
 model compared to decision tree and HP random forest as it has a
@@ -366,10 +358,9 @@ Decision Tree model. This indicates that gradient boosting likely better
 to handle noise in data, overfitting issues, and provide better
 prediction accuracy.
 
-[Test data]{.underline}
+<u>Test Data</u>
+![Example Image](image21.png)
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image21.png){width="5.992186132983377in"
-height="3.908672353455818in"}
 
 However, for test dataset, Gradient Boost have a higher
 misclassification rate, sum of squared errors with lower gini
@@ -381,8 +372,7 @@ errors.
 
 ### ROC Chart
 
-![](vertopal_b073f5901b81407ebf71bd36f24c2aae/media/image22.png){width="6.268055555555556in"
-height="3.084722222222222in"}
+![Example Image](image22.png)
 
 ROC curve provides indication on models predictive ability with higher
 area under curve (AUC) indicates better ability of predicting. In train
@@ -433,7 +423,30 @@ of outliers and noise, as well as limited amount of dataset, the model
 provided is overfitted. This indicates further study with dataset with
 better representation, different models of different complexities, as
 well as different training approach such as cross validation technique.
-Limitation of this studies include time-constraint of implying
-pre-processing techniques such as sequence analysis and associate rule
-mining, as well as multiple sources of dataset to increase
-generalizability of model developed.
+
+# Challenges of Study #
+
+Due to time constraints, the study couldn't employ advanced pre-processing techniques like sequence analysis, which would track the order of items purchased. This can potentially revealing patterns in customer behavior over time.Similarly, association rule mining, which might uncover relationships between categorical variables such as New York city is frequently related to electronics. This analyis can provide a strategic business target to boosts products sale. Additionally, the study's model generalizability is limited as it relies on a single dataset. Incorporating multiple data sources could enhance the model's robustness, making its predictions more reliable across different customer segments and shopping platforms. Also, multiple data sources would provide a greater challenges and opportunity to learn such which includes:
+
+1. Data integration
+Different data sources provides different structure and attributes. This may provide more on a real-life example of conducting customer behaviour analysis as data normally does not come from one source. Additionally, option in tackling challenges such as aligning format from each sources using Talend Data Integration may be presented in this case study.
+
+2. Data Quality and Consistency
+Data source presented in this study are considered quite clean and consistent despite few noises and missing values are detected. These qualities are the opposite of real-life e-commerce data which consists of many inconsistencies and errornous data.
+
+3. Utilization of various techniques:
+When managing small datasets, it's often unnecessary to apply complex methods like sampling or feature reduction as these can lead to overfitting, subsequently results in poor model performance. However, in the context of large datasets from multiple sources, these techniques become vital. Sampling helps manage the volume, making computations more feasible, and feature reduction techniques like Principal Component Analysis (PCA) or Singular Value Decomposition (SVD) reduce dimensionality, helping to focus on the most informative features and improve model efficiency. This allows for better representation of the underlying data structure and scales the data processing to handle the increased complexity and size, facilitating more accurate and generalizable models.
+
+Overall, the case study provides a general overview on customer behaviour analysis with e-commerce dataset. However, the choices of dataset is viable as it can provide a better insight as well as real-life representation which may present merging datasets from different sources, improving data quality and consistency from a higher variety of inconsistency, noise and errors, as well as greater number of techniques used with a better and more reliable prediction model.
+
+
+
+
+
+
+
+
+
+
+
+
